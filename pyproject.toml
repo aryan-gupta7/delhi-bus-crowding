@@ -1,0 +1,30 @@
+[project]
+name = "crowd"
+version = "0.1.0"
+description = "Crowding-aware journey planner for Delhi buses: ticket-sample pipeline, validation and planner demo"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2,<3",
+    "pyarrow>=16",
+    "scipy>=1.13",
+    "rapidfuzz>=3.9",
+    "pyyaml>=6.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "data: needs the October CSV and GTFS files (slow)",
+    "e2e: mini end-to-end fixture",
+]
+addopts = "-m 'not data'"

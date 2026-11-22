@@ -1,0 +1,12 @@
+# generated artefacts and raw data (rights: raw tickets never ship)
+out/
+data/
+work/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+October-Delhi.csv
+gtfs_raw/
+*.zip
+.DS_Store
