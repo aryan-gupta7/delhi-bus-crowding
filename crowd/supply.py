@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from crowd.config import Config
-from crowd.eligibility import DAY_TYPES, WEEKDAY, WEEKEND
+from crowd.eligibility import WEEKDAY, WEEKEND
 from crowd.gtfs import Geometry
 
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from crowd import text
 from crowd.config import Config
 from crowd.planner.scoring import ScoredOption, Scorer
 

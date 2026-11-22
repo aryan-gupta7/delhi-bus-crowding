@@ -107,15 +107,20 @@ def _git_commit() -> str:
         return "unknown"
 
 
-def write_manifest(stages: list[Stage], ctx: Context, timings: dict[str, float], extra: dict[str, Any]) -> dict:
-    """Write run_manifest.json. ``reproducibility_hash`` covers config and data outputs only."""
+def reproducibility_hash(stages: list[Stage], ctx: Context) -> tuple[str, dict[str, str]]:
+    """Hash of the config (without file locations) and of every data output of ``stages``."""
     outputs = sorted({m for s in stages for m in s.makes})
     out_hashes = {m: ctx.store.sha256(m) for m in outputs if ctx.store.exists(m)}
+    blob = json.dumps({"config": ctx.cfg.hash(), "outputs": out_hashes}, sort_keys=True).encode()
+    return hashlib.sha256(blob).hexdigest(), out_hashes
+
+
+def write_manifest(stages: list[Stage], ctx: Context, timings: dict[str, float], extra: dict[str, Any]) -> dict:
+    """Write run_manifest.json. ``reproducibility_hash`` covers config and data outputs only."""
+    repro, out_hashes = reproducibility_hash(stages, ctx)
     inputs = {n: sha256_file(ctx.raw_path(n)) if ctx.raw_path(n).is_file() else
               {f.name: sha256_file(f) for f in sorted(ctx.raw_path(n).glob("*.txt"))}
               for n in ("raw:tickets", "raw:gtfs")}
-    repro = hashlib.sha256(json.dumps({"config": ctx.cfg.hash(), "outputs": out_hashes},
-                                      sort_keys=True).encode()).hexdigest()
     manifest = {
         "reproducibility_hash": repro, "config_hash": ctx.cfg.hash(), "inputs": inputs,
         "outputs": out_hashes, "git_commit": _git_commit(), "package_version": __version__,

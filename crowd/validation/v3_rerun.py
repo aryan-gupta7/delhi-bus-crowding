@@ -11,10 +11,9 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
-from crowd.pipeline import Context, run, write_manifest
+from crowd.pipeline import Context, reproducibility_hash, run
 from crowd.stages import STAGES
 from crowd.store import Store
 from crowd.validation import metrics
@@ -66,6 +65,6 @@ def run_v3(ctx: Context) -> pd.DataFrame:
         fresh_cfg = cfg.with_overrides({"paths.out": str(tmp / "out_fresh")})
         fresh = Context(cfg=fresh_cfg, store=Store(fresh_cfg.path("out")))
         run(RUNNABLE, fresh)
-        same = write_manifest(RUNNABLE, fresh, {}, {})["reproducibility_hash"] == ref.read_json("run_manifest.json")["reproducibility_hash"]
+        same = reproducibility_hash(RUNNABLE, fresh)[0] == reproducibility_hash(RUNNABLE, ctx)[0]
         rows.append({"check": "full rerun in a fresh directory reproduces the reference reproducibility hash", "result": same, "passed": same})
     return pd.DataFrame(rows)

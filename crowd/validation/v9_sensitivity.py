@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 
 from crowd import stages, supply as supply_mod
-from crowd.config import Config
 from crowd.ensemble import Scenario, run_ensemble
 from crowd.index import hour_profile_z
 from crowd.outputs import CrowdingTable
@@ -33,6 +32,17 @@ def smooth_hours(dense: dict) -> dict:
         seats = np.where(v["N"] > 0, v["Z"] / np.maximum(v["N"], 1e-9), 0).max(axis=1, keepdims=True)
         out[day_type] = {"N": n.astype(np.float32), "Z": (n * seats).astype(np.float32)}
     return out
+
+
+def _level_change_share(base: pd.DataFrame, other: pd.DataFrame) -> float:
+    """Exposure share (base passenger pressure x seats, weekday) of base cells whose central level differs
+    in ``other``; a base cell missing from ``other`` counts as changed."""
+    keys = ["route", "stretch_id", "hour", "day_type"]
+    b = base[base["day_type"] == "weekday"][keys + ["level", "pi_central", "Z"]]
+    merged = b.merge(other[keys + ["level"]], on=keys, how="left", suffixes=("", "_other"))
+    weight = (merged["pi_central"] * merged["Z"]).to_numpy()
+    moved = (merged["level"] != merged["level_other"]).to_numpy()
+    return float(weight[moved].sum() / weight.sum())
 
 
 def _plans(planner: Planner, queries: list[Query]) -> pd.DataFrame:
@@ -94,11 +104,8 @@ def run_v9(ctx: Context, planner: Planner, queries: list[Query]) -> dict[str, pd
             row.update({"recommendations changed vs base": 0.0, "exposure share whose level changes vs base": 0.0})
         else:
             changed = (plans["shown"] != base_plans["shown"]) | (plans["shown"] & (plans["calmer_routes"] != base_plans["calmer_routes"]))
-            weekday = (base_cells["day_type"] == "weekday").to_numpy()
-            w_all = (base_cells["pi_central"] * base_cells["Z"]).to_numpy()
-            moved = (result.cells["level"].to_numpy() != base_cells["level"].to_numpy()) & weekday
             row.update({"recommendations changed vs base": float(changed.mean()),
-                        "exposure share whose level changes vs base": float(w_all[moved].sum() / w_all[weekday].sum())})
+                        "exposure share whose level changes vs base": _level_change_share(base_cells, result.cells)})
         rows.append(row)
         if name.startswith("base") or "sigma 0.9" in name:
             gammas.append(plans.assign(setting=name))

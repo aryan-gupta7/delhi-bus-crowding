@@ -52,7 +52,6 @@ def _hubs(ctx: Context, hub_names: list[str]) -> dict:
     top = set(zip(nine.loc[nine["pi_central"] >= cut, "route"], nine.loc[nine["pi_central"] >= cut, "stretch_id"]))
     norm = make_normaliser(dict(ctx.cfg.matching.abbreviations.to_dict()))
     names = np.array([norm(n) for n in geo.stop_name])
-    seg_route = np.repeat(np.arange(geo.n_routes), geo.n_stops - 1)
     stop_route = np.repeat(np.arange(geo.n_routes), geo.n_stops)
     found, on_top = [], []
     for hub in hub_names:
