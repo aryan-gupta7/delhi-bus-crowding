@@ -1,6 +1,5 @@
 """S0b on synthetic data: an outage hour, a stream-fault day, and untouched weekend peaks."""
 
-import numpy as np
 import pandas as pd
 
 from crowd.eligibility import build_day_hour_ok

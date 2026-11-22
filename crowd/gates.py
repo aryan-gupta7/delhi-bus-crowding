@@ -8,7 +8,6 @@ open: the tickets carry no bus-length field.
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import yaml
 from scipy.stats import spearmanr
 
@@ -59,7 +58,6 @@ def g2_coverage(ctx: Context) -> dict:
     cov = ctx.store.read_table("coverage.parquet")
     rc = matching.route_coverage(cov)
     by_tier = rc.groupby("vol_tier").apply(lambda g: g["pax_both"].sum() / g["pax"].sum(), include_groups=False)
-    top = by_tier.get("top250", np.nan)
     m = ctx.store.read_table("stop_matches.parquet")
     steps = (m.groupby("method")["pax"].sum() / m["pax"].sum()).round(4).to_dict()
     unmatched = m[m["method"] == "none"].groupby("name")["pax"].sum().sort_values(ascending=False)

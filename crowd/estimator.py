@@ -173,10 +173,6 @@ class Estimator:
         shape = np.maximum(self.shape[day_type][pos], 1e-6)
         return rng.gamma(shape, 1.0 / self.rate[day_type][pos], size=(n_draws, 24))
 
-    def segment_od_cov(self, pos: int) -> np.ndarray:
-        """Matched training tickets covering each segment, summed over hour bands."""
-        return self.od_cov[pos].sum(axis=0)
-
 
 # ----------------------------------------------------------------------------------------------
 # fitting
@@ -202,7 +198,8 @@ def _direction_shares(total_per_day: np.ndarray, dir_class: np.ndarray) -> np.nd
         sel = dir_class == cls
         prof = total_per_day[sel].sum(axis=0)
         prof = prof if prof.sum() > 0 else city
-        shares[sel] = prof / prof.sum()
+        if prof.sum() > 0:
+            shares[sel] = prof / prof.sum()
     return shares
 
 

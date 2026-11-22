@@ -76,17 +76,3 @@ def build_day_hour_ok(tickets: pd.DataFrame, cfg: Config) -> pd.DataFrame:
         "v_null": vol[0].ravel().astype("int32"),
         "v_tagged": vol[1].ravel().astype("int32"),
     })
-
-
-def day_table(day_hour_ok: pd.DataFrame) -> pd.DataFrame:
-    """Per-day summary (day-type, fault flag, number of masked hours) for gate G1 and the note."""
-    g = day_hour_ok.groupby("date", sort=True)
-    out = g.agg(day_type=("day_type", "first"), stream_fault=("day_ok", lambda s: not s.iloc[0]),
-                hours_masked=("reason", lambda s: int((s == "outage").sum())))
-    return out.reset_index()
-
-
-def eligible_days(day_hour_ok: pd.DataFrame, day_type: str) -> np.ndarray:
-    """Sorted dates of the day-type that have at least one usable hour."""
-    sel = day_hour_ok[(day_hour_ok["day_type"] == day_type) & day_hour_ok["hour_ok"]]
-    return np.sort(sel["date"].unique())

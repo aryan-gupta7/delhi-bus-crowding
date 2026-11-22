@@ -1,6 +1,5 @@
 """S2: cascade steps and the loop-aware pair constraint."""
 
-import numpy as np
 import pandas as pd
 
 from crowd import gtfs, matching

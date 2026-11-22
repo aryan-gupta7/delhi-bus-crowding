@@ -1,6 +1,5 @@
 """Checks against the real October files (slow): ``uv run pytest -m data``."""
 
-import numpy as np
 import pytest
 
 from crowd import gates, stages

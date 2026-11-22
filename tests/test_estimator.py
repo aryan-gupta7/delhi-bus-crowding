@@ -70,5 +70,4 @@ def test_estimator_conserves_volume_on_the_mini_world(mini_ctx):
     # total passenger-segments = sum over boarding tickets of the profile's mean ride length
     assert q.sum() > 0 and lam.sum() > 0
     r1 = stages.geometry(mini_ctx).route_index["R1UP"]
-    pos = int(np.searchsorted(est.routes, r1))
     assert q[stages.geometry(mini_ctx).segs_of(r1)][:, 8].sum() > q[stages.geometry(mini_ctx).segs_of(r1)][:, 3].sum()

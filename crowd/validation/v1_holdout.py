@@ -87,7 +87,6 @@ def od_scores(est: Estimator, od_train: pd.DataFrame, od_test: pd.DataFrame, cfg
     """
     eps = cfg.validation.od_floor
     geo = est.geo
-    band_index = {n: i for i, n in enumerate(est.band_names)}
     pos_of = {int(r): p for p, r in enumerate(est.routes)}
     train_groups = {key: g for key, g in od_train.groupby(["route", "band"])}
     edges = cfg.validation.tier_edges

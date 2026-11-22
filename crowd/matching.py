@@ -21,8 +21,6 @@ from crowd.config import Config
 from crowd.gtfs import Geometry, haversine_m
 from crowd.names import make_normaliser, split_composite
 
-METHODS = ["exact", "split", "fuzzy", "coord", "none"]
-
 
 def _route_tables(geo: Geometry, normalise) -> list[dict[str, int]]:
     """Per route: normalised stop name -> first canonical index."""

@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 TICKET_COLUMNS = [
@@ -82,8 +81,3 @@ def read_tickets(csv_path: Path) -> tuple[pd.DataFrame, IngestReport]:
 
 def report_dict(report: IngestReport) -> dict:
     return asdict(report)
-
-
-def tagged_mask(vehicle: pd.Series) -> np.ndarray:
-    """True where the ticket carries a vehicle number."""
-    return vehicle.notna().to_numpy()
