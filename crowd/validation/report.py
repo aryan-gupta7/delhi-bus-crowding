@@ -82,7 +82,11 @@ def run_all(ctx: Context, only: tuple[str, ...] = ITEMS) -> Path:
             parts += _section("V8-lite: planner on random queries (each query is a ride on one scheduled route, so a direct "
                               "journey always exists: 'answered' is a light check)", markdown_table(v8_planner.summarise(v8)))
         if "v9" in only:
-            v9 = v9_sensitivity.run_v9(ctx, planner, queries)
+            n9 = ctx.cfg.validation.n_queries_v9
+            n9_peak = int(n9 * ctx.cfg.validation.peak_query_share)
+            queries9 = (sample_queries(planner, routes, n9_peak, seed=4, hours=PEAK_HOURS)
+                        + sample_queries(planner, routes, n9 - n9_peak, seed=5, hours=MIDDAY_HOURS))
+            v9 = v9_sensitivity.run_v9(ctx, planner, queries9)
             parts += _section("V9: sensitivity of recommendations to the invented assumptions",
                               markdown_table(v9["sensitivity"]), "### Robustness value Gamma* (smallest coverage difference that erases the advantage)",
                               markdown_table(v9["gamma_star"]))

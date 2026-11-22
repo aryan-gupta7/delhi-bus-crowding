@@ -98,7 +98,7 @@ def run_v9(ctx: Context, planner: Planner, queries: list[Query]) -> dict[str, pd
         wk = result.cells[(result.cells["day_type"] == "weekday") & (result.cells["tier"] != "No estimate")]
         weight = (wk["pi_central"] * wk["Z"]).to_numpy()
         row = {"setting": name, "robust share (exposure-weighted)": float(weight[wk["robust_in_range"].to_numpy()].sum() / weight.sum()),
-               **_band_rates(plans)}
+               **_band_rates(plans), "calmer candidate has a central advantage": float(plans["has_advantage"].mean())}
         if base_cells is None:
             base_cells, base_plans = result.cells, plans
             row.update({"recommendations changed vs base": 0.0, "exposure share whose level changes vs base": 0.0})

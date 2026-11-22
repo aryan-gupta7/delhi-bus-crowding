@@ -110,6 +110,7 @@ validation:                  # §9
   v3_min_kappa: 0.8          # V3: weekday level agreement with the reference under frozen cuts (observed: 0.93)
   n_queries: 200             # V8/V9/V10 random queries
   peak_query_share: 0.7      # share of those queries drawn at peak hours (the rest at midday)
+  n_queries_v9: 600          # V9 re-plans these queries under nine settings
   n_queries_v10: 1500        # V10 needs many peak queries: few random ones are fully estimated with a central advantage
 
 planner:                     # business-logic.md §8
