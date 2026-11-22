@@ -31,7 +31,8 @@ def markdown_table(df: pd.DataFrame, digits: int = 4) -> str:
         cells = []
         for c in cols:
             v = row[c]
-            cells.append("" if pd.isna(v) else (f"{v:.{digits}f}" if isinstance(v, float) else str(v)))
+            integral = isinstance(v, float) and not pd.isna(v) and float(v).is_integer() and abs(v) >= 100
+            cells.append("" if pd.isna(v) else (f"{v:,.0f}" if integral else f"{v:.{digits}f}" if isinstance(v, float) else str(v)))
         lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines)
 

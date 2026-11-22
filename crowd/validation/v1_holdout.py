@@ -203,13 +203,15 @@ def shape_rows(inp: FlowInputs) -> list[dict]:
 
 def kappa_rows(inp: FlowInputs) -> list[dict]:
     """Level agreement with the held-out target for the model and for B2 (each with its own training cuts)."""
+    names = (MODEL, MODEL_FITTED, "B2")
+    fields = {name: inp.levels(inp.predictors[name]) for name in names}
+    common = np.logical_and.reduce([has & (mins > 0) for _, _, mins, has in fields.values()])   # same cells for every predictor
     rows = []
-    for name in (MODEL, MODEL_FITTED, "B2"):
-        lvl_pred, cuts, mins, has = inp.levels(inp.predictors[name])
+    for name in names:
+        lvl_pred, cuts, mins, _ = fields[name]
         lvl_tgt, _, _, _ = inp.levels(inp.target, cuts)
-        ok = has & (mins > 0)
-        for stratum, sel in {"all stretch-hours": ok, **{f"band {n}": ok & (inp.boh[None, :] == b)
-                                                          for b, n in enumerate(inp.band_names)}}.items():
+        for stratum, sel in {"all stretch-hours": common, **{f"band {n}": common & (inp.boh[None, :] == b)
+                                                              for b, n in enumerate(inp.band_names)}}.items():
             rows.append({"stratum": stratum, "predictor": name, "cells": int(sel.sum()),
                          "weighted kappa": metrics.weighted_kappa(lvl_pred[sel], lvl_tgt[sel], mins[sel])})
     return rows
