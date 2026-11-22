@@ -1,0 +1,414 @@
+[
+  {
+    "blocking": true,
+    "id": "G1",
+    "name": "eligibility rule reproduces October anomalies (regression test)",
+    "note": "all anomalies reproduced",
+    "passed": true,
+    "threshold": 0,
+    "value": 0
+  },
+  {
+    "blocking": true,
+    "detail": {
+      "coverage_by_tier": {
+        "rest": 0.7745,
+        "top250": 0.7839,
+        "top50": 0.8677
+      },
+      "heaviest_fuzzy_matches": [
+        {
+          "matched_stop": "Mahipal Pur (NH8) / MAHIPAL PUR CROSSING",
+          "pax": 7705,
+          "route": "729DOWN",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur (Nh8)"
+        },
+        {
+          "matched_stop": "Badarpur Border (T)",
+          "pax": 3704,
+          "route": "8UP",
+          "score": 100.0,
+          "ticket_name": "Badarpur Border"
+        },
+        {
+          "matched_stop": "Mahipal Pur (NH8) / MAHIPAL PUR CROSSING",
+          "pax": 3384,
+          "route": "706DOWN",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur (Nh8)"
+        },
+        {
+          "matched_stop": "Badarpur Border (T)",
+          "pax": 3074,
+          "route": "405UP",
+          "score": 100.0,
+          "ticket_name": "Badarpur Border"
+        },
+        {
+          "matched_stop": "Badarpur Border (T)",
+          "pax": 2845,
+          "route": "473UP",
+          "score": 100.0,
+          "ticket_name": "Badarpur Border"
+        },
+        {
+          "matched_stop": "Bijwason Flyover after Bridge / Bamnoli",
+          "pax": 2735,
+          "route": "578UP",
+          "score": 100.0,
+          "ticket_name": "Bamnoli"
+        },
+        {
+          "matched_stop": "Said ul zeb",
+          "pax": 2700,
+          "route": "463UP",
+          "score": 100.0,
+          "ticket_name": "Said Ul Zeb Village"
+        },
+        {
+          "matched_stop": "Laxmi Nagar Metro Station / Laxmi Nagar",
+          "pax": 2682,
+          "route": "623DOWN",
+          "score": 100.0,
+          "ticket_name": "Laxmi Nagar"
+        },
+        {
+          "matched_stop": "Mahipal Pur Extension",
+          "pax": 2495,
+          "route": "543ADOWN",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur"
+        },
+        {
+          "matched_stop": "Badarpur Border (T)",
+          "pax": 2425,
+          "route": "460UP",
+          "score": 100.0,
+          "ticket_name": "Badarpur Border"
+        },
+        {
+          "matched_stop": "Mahipal Pur Village / Mahipal Pur Crossing NH8",
+          "pax": 2414,
+          "route": "578UP",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur"
+        },
+        {
+          "matched_stop": "Hamdard Nagar / Sangam Vihar",
+          "pax": 2331,
+          "route": "425UP",
+          "score": 100.0,
+          "ticket_name": "Hamdard Nagar"
+        },
+        {
+          "matched_stop": "ISBT Anand Vihar",
+          "pax": 2314,
+          "route": "543ADOWN",
+          "score": 100.0,
+          "ticket_name": "Anand Vihar (Isbt)"
+        },
+        {
+          "matched_stop": "Kapashera Crossing (Najafgarh Road)",
+          "pax": 2301,
+          "route": "578UP",
+          "score": 100.0,
+          "ticket_name": "Kapashera Crossing"
+        },
+        {
+          "matched_stop": "Hamdard Nagar / Sangam Vihar",
+          "pax": 2255,
+          "route": "463UP",
+          "score": 100.0,
+          "ticket_name": "Hamdard Nagar"
+        },
+        {
+          "matched_stop": "West Patel Nagar / Patel Nagar",
+          "pax": 2249,
+          "route": "85DOWN",
+          "score": 100.0,
+          "ticket_name": "West Patel Nagar"
+        },
+        {
+          "matched_stop": "Hamdard Nagar / Sangam Vihar",
+          "pax": 2209,
+          "route": "463DOWN",
+          "score": 100.0,
+          "ticket_name": "Hamdard Nagar"
+        },
+        {
+          "matched_stop": "Mahipal Pur Village / Mahipal Pur Crossing NH8",
+          "pax": 2208,
+          "route": "543AUP",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur"
+        },
+        {
+          "matched_stop": "Mahipal Pur Village",
+          "pax": 2139,
+          "route": "534ADOWN",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur"
+        },
+        {
+          "matched_stop": "Ambedkar Nagar Terminal / DIPSAR",
+          "pax": 2084,
+          "route": "419UP",
+          "score": 100.0,
+          "ticket_name": "Ambedkar Nagar Terminal"
+        },
+        {
+          "matched_stop": "Badarpur Border(T)",
+          "pax": 2077,
+          "route": "473DOWN",
+          "score": 100.0,
+          "ticket_name": "Badarpur Border"
+        },
+        {
+          "matched_stop": "Badarpur Border (T)",
+          "pax": 2059,
+          "route": "460DOWN",
+          "score": 100.0,
+          "ticket_name": "Badarpur Border"
+        },
+        {
+          "matched_stop": "Noida Sec 37 Chowk",
+          "pax": 2042,
+          "route": "8DOWN",
+          "score": 100.0,
+          "ticket_name": "Noida Sector 37"
+        },
+        {
+          "matched_stop": "Pul Pehladpur ( BadarPur)",
+          "pax": 1979,
+          "route": "433DOWN",
+          "score": 97.77777777777777,
+          "ticket_name": "Pul Prehladpur ( Badarpur)"
+        },
+        {
+          "matched_stop": "Mahipal Pur (NH8) / MAHIPAL PUR CROSSING",
+          "pax": 1971,
+          "route": "706ADOWN",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur (Nh8)"
+        },
+        {
+          "matched_stop": "Pul Pehladpur ( BadarPur)",
+          "pax": 1963,
+          "route": "511AUP",
+          "score": 97.77777777777777,
+          "ticket_name": "Pul Prehladpur ( Badarpur)"
+        },
+        {
+          "matched_stop": "Mahipal Pur Village",
+          "pax": 1959,
+          "route": "715DOWN",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur"
+        },
+        {
+          "matched_stop": "Singhu Border GT Road",
+          "pax": 1950,
+          "route": "144UP",
+          "score": 100.0,
+          "ticket_name": "Singhu Border"
+        },
+        {
+          "matched_stop": "AeroCity Metro Station",
+          "pax": 1941,
+          "route": "D-9101UP",
+          "score": 100.0,
+          "ticket_name": "Aerocity"
+        },
+        {
+          "matched_stop": "Mahipal Pur Village / Sec E Pkt 2 Vasant Kunj",
+          "pax": 1901,
+          "route": "534AUP",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur"
+        },
+        {
+          "matched_stop": "Mahipal Pur Village",
+          "pax": 1830,
+          "route": "715UP",
+          "score": 100.0,
+          "ticket_name": "Mahipal Pur"
+        },
+        {
+          "matched_stop": "Anand Vihar ISBT Main Road",
+          "pax": 1824,
+          "route": "33UP",
+          "score": 100.0,
+          "ticket_name": "Isbt Anand Vihar"
+        },
+        {
+          "matched_stop": "IGI Airport Terminal 2",
+          "pax": 1805,
+          "route": "D-034UP",
+          "score": 100.0,
+          "ticket_name": "Igi Airport Terminal 2 (Air India Office)"
+        },
+        {
+          "matched_stop": "Samaypur Badli Metro / Badli Railway Staion",
+          "pax": 1804,
+          "route": "D-2202UP",
+          "score": 100.0,
+          "ticket_name": "Samaypur Badli Metro / Railway Staion"
+        },
+        {
+          "matched_stop": "Badarpur Jaitpur Crossing",
+          "pax": 1776,
+          "route": "8DOWN",
+          "score": 100.0,
+          "ticket_name": "Jaitpur Xing"
+        },
+        {
+          "matched_stop": "Badarpur Border (T)",
+          "pax": 1768,
+          "route": "405DOWN",
+          "score": 100.0,
+          "ticket_name": "Badarpur Border"
+        },
+        {
+          "matched_stop": "West Patel Nagar / Patel Nagar",
+          "pax": 1767,
+          "route": "990DOWN",
+          "score": 100.0,
+          "ticket_name": "West Patel Nagar"
+        },
+        {
+          "matched_stop": "Munirka Village (T)",
+          "pax": 1741,
+          "route": "578DOWN",
+          "score": 100.0,
+          "ticket_name": "Munirka Village"
+        },
+        {
+          "matched_stop": "Mayapuri Depot Crossing / Maya Puri Chowk",
+          "pax": 1728,
+          "route": "721DOWN",
+          "score": 100.0,
+          "ticket_name": "Maya Puri Depot"
+        },
+        {
+          "matched_stop": "Munirka Village (T)",
+          "pax": 1664,
+          "route": "523DOWN",
+          "score": 100.0,
+          "ticket_name": "Munirka Village"
+        }
+      ],
+      "overall_both_ends": 0.8012,
+      "pax_share_by_method": {
+        "coord": 0.0257,
+        "exact": 0.6393,
+        "fuzzy": 0.2141,
+        "none": 0.1169,
+        "split": 0.0041
+      },
+      "unmatched_hub_share_top20": {
+        "Badarpur": 0.0173,
+        "Begam Pur": 0.0069,
+        "Devoli Road Crossing": 0.011,
+        "G.T.K Depot": 0.0073,
+        "Laxmi Nagar": 0.0061,
+        "Laxmi Nagar Xing": 0.0097,
+        "Madhuvan Chowk": 0.0068,
+        "Mahipal Pur": 0.0136,
+        "Mahvir Enclave Part Ii,Iii": 0.0065,
+        "P.S. Pahar Gunj": 0.006,
+        "Peera Garhi": 0.0103,
+        "Punjabi Bagh": 0.0072,
+        "S J Hospital": 0.0093,
+        "S.J. Hospital": 0.0145,
+        "Sagar Pur Vashishth Park": 0.0093,
+        "Shadi Pur Depot": 0.0128,
+        "Shadi Pur Metro Station": 0.0137,
+        "Shakarpur": 0.0125,
+        "Tb Hospital": 0.0059,
+        "Vayusena Bad": 0.0067
+      }
+    },
+    "id": "G2",
+    "name": "both-ends coverage, top-250 routes (passenger-weighted)",
+    "note": "reported with cascade contribution and the 20 most frequent unmatched names",
+    "passed": true,
+    "threshold": 0.65,
+    "value": 0.8176
+  },
+  {
+    "blocking": false,
+    "id": "G2b",
+    "name": "fuzzy/coordinate match precision proxy: Spearman(fare, ride distance), AC tickets",
+    "note": "same correlation as exact matches supports match precision (fares are not used in matching)",
+    "passed": true,
+    "threshold": "fuzzy and coord within 0.05 of exact",
+    "value": {
+      "any_coord": 0.883,
+      "any_fuzzy": 0.864,
+      "both_exact": 0.858
+    }
+  },
+  {
+    "blocking": false,
+    "id": "G3",
+    "name": "bus class mapping (OPEN: no bus-length field in tickets)",
+    "note": "share of routes using the fleet-default AC mix; seat counts are the configured A-9 assumption until an external vehicle->length table is obtained",
+    "passed": null,
+    "threshold": null,
+    "value": 0.262
+  },
+  {
+    "blocking": false,
+    "id": "G4",
+    "name": "exposure share of cells with N <= small_n (weekday)",
+    "note": "these cells are capped at tier Medium and flagged small_N; no Pi shrink by default",
+    "passed": null,
+    "threshold": null,
+    "value": 0.243
+  },
+  {
+    "blocking": true,
+    "id": "G5",
+    "name": "trips not mappable onto their canonical pattern",
+    "note": "loop routes: 67; ticket volume on GTFS routes: 0.9823",
+    "passed": true,
+    "threshold": 0,
+    "value": 0
+  },
+  {
+    "blocking": false,
+    "id": "G6",
+    "name": "destination-shift sensitivity (A-4): flow rank correlation and stretch-level kappa under +-1/+-2 stops",
+    "note": "gated on what a commuter sees (levels); the flow Spearman is reported as information. The threshold (the same 0.8 as V3) is argued, not tuned; the earlier 0.95 target on segment-flow rank was never calibrated",
+    "passed": true,
+    "threshold": 0.8,
+    "value": {
+      "+1": {
+        "flow Spearman": 0.9867,
+        "level kappa": 0.9661
+      },
+      "+2": {
+        "flow Spearman": 0.9753,
+        "level kappa": 0.9391
+      },
+      "-1": {
+        "flow Spearman": 0.9581,
+        "level kappa": 0.9491
+      },
+      "-2": {
+        "flow Spearman": 0.9161,
+        "level kappa": 0.8936
+      }
+    }
+  },
+  {
+    "blocking": false,
+    "id": "G7",
+    "name": "ticket peak/midday ratio relative to timetable peak/midday ratio (09h vs 13h)",
+    "note": "a ratio far from 1 means cross-hour scale is not identified by the data (see mechanism \u00a71)",
+    "passed": null,
+    "threshold": null,
+    "value": 6.91
+  }
+]

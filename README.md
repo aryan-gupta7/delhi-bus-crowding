@@ -45,7 +45,7 @@ Stages whose inputs, config sections and source files are unchanged are skipped.
 | `stretches.geojson`, `route_hour_matrix.csv` | Map geometry and the route × hour grid for the operator view |
 | `cuts.json` | The frozen band cuts (central + per draw) and the scenario grid |
 | `run_manifest.json` | Input/output hashes, config hash, git commit, ingest report, timings |
-| `gates.json`, `validation/report.md` | Gate results and the held-out validation report |
+| `gates.json`, `validation/report.md` | Gate results and the held-out validation report (a committed copy, aggregated, is `docs/validation_report.md`) |
 | `estimator_fit.json` | Fitted α, φ, Dirichlet strengths and the shrinkage multiplier chosen on the inner split |
 
 Command line: `python -m crowd query --route 8UP --from "Ali Village" --to "Mahamaya Flyover West" --time 09:30`
