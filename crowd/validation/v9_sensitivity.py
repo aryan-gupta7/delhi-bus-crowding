@@ -107,7 +107,7 @@ def run_v9(ctx: Context, planner: Planner, queries: list[Query]) -> dict[str, pd
             row.update({"recommendations changed vs base": float(changed.mean()),
                         "exposure share whose level changes vs base": _level_change_share(base_cells, result.cells)})
         rows.append(row)
-        if name.startswith("base") or "sigma 0.9" in name:
+        if name.startswith("base"):                 # Gamma* is computed at the central scenario, so sigma does not move it
             gammas.append(plans.assign(setting=name))
     g = pd.concat(gammas)
     g = g[g["gamma_star"].notna()]
