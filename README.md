@@ -6,6 +6,8 @@ bus route, and when, riders are relatively crowded*, and helps a commuter choose
 calmer option — **without claiming more than the data can support**. When the data cannot tell whether a
 calmer option is really calmer, the planner says "No clearly calmer option for this trip".
 
+Most trips have no clearly calmer alternative, so the "More comfortable" card is rare (about 1% of peak trips); the demo uses trips where a real difference exists, e.g. Prithvi Raj Road → Supreme Court at 08:57.
+
 Read [docs/identifiability.md](docs/identifiability.md) first: it explains what the tickets can and cannot
 tell us (one route within one hour: yes; across routes or hours: no) and what we do about it.
 

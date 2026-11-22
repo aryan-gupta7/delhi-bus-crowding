@@ -91,7 +91,7 @@ class Scorer:
     def score(self, option: Option, day_type: str) -> ScoredOption:
         k = self.table.levels.shape[1]
         legs, extra = [], {name: (0.0, np.zeros(k)) for name in ("hi", "lo")}
-        unknown = {"hi": self.m[2], "lo": self.m[0]}
+        unknown = {"hi": self.m[2], "lo": self.m[0]}      # the bounds are m3 / m1 of P-R3, so a multiplier set changes them too
         for leg in option.legs:
             refs = self._stretches(leg.route, leg.board_idx, leg.alight_idx, leg.board_min, day_type)
             minutes = sum(s.minutes for s in refs)
