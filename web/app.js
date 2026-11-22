@@ -110,12 +110,15 @@ function initMap() {
     style: { version: 8, sources: { osm: { type: "raster", tileSize: 256, attribution: "© OpenStreetMap contributors",
              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"] } }, layers: [{ id: "osm", type: "raster", source: "osm" }] },
   });
-  map.on("load", () => {
+  map.on("style.load", () => {          // do not wait for tiles: lines must work offline
     map.addSource("lines", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    map.addLayer({ id: "lines", type: "line", source: "lines", layout: { "line-cap": "round" },
-      paint: { "line-color": ["match", ["get", "level"], 1, COLORS[1], 2, COLORS[2], 3, COLORS[3], COLORS[0]],
-               "line-width": ["match", ["get", "level"], 1, WIDTH[1], 2, WIDTH[2], 3, WIDTH[3], WIDTH[0]],
-               "line-dasharray": ["case", ["==", ["get", "level"], 0], ["literal", [2, 2]], ["literal", [1, 0]]] } });
+    map.addLayer({ id: "lines", type: "line", source: "lines", filter: [">", ["get", "level"], 0], layout: { "line-cap": "round" },
+      paint: { "line-color": ["match", ["get", "level"], 1, COLORS[1], 2, COLORS[2], COLORS[3]],
+               "line-width": ["match", ["get", "level"], 1, WIDTH[1], 2, WIDTH[2], WIDTH[3]] } });
+    // no estimate: dashed grey (dash arrays cannot be data-driven, so it is its own layer)
+    map.addLayer({ id: "lines-none", type: "line", source: "lines", filter: ["==", ["get", "level"], 0],
+      paint: { "line-color": COLORS[0], "line-width": WIDTH[0], "line-dasharray": [2, 2] } });
+    map.resize();
     mapReady = true;
   });
 }
@@ -128,4 +131,5 @@ document.addEventListener("DOMContentLoaded", () => {
   $("heatmap").addEventListener("click", (e) => { if (e.target.dataset.route) drawRoute(e.target.dataset.route); });
   wireSearch("from", "from-list"); wireSearch("to", "to-list");
   initMap();
+  window.addEventListener("resize", () => map.resize());
 });
