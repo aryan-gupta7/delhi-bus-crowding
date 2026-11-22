@@ -80,7 +80,7 @@ tickets (evidence tier shows this).
   cells model 0.819 vs the unsmoothed pooled flow B2 0.833 (replicate ceiling 0.879, noise-free ceiling
   0.938). Level with B2 in the busiest tier (0.943 vs 0.944), ahead in the middle tier (0.831 vs 0.826),
   behind in the sparsest tier (0.587 vs 0.602). **The model does not beat B2 on overall rank agreement.**
-* **Levels** (weighted kappa against the held-out target, same cells for every predictor, each with its own training cuts): model 0.830, B2 0.830, model with strengths as fitted 0.807. A tie with B2: the levels a commuter sees are as good as the unsmoothed estimate and smoother in sparse cells.
+* **Levels** (weighted kappa against the held-out target, same cells for every predictor, each with its own training cuts): model 0.830, B2 0.830, model with strengths as fitted 0.807. A tie with B2: on levels the model is as good as the unsmoothed estimate, not better.
 * **Known patterns (V7):** all assertions hold (two weekday peaks; inbound routes busier in the AM and outbound
   in the PM; weekends lighter). The hub check is weak (the hub list is an assumption).
 * **Planner (V8):** 200 random queries, 98.5% answered, no crashes, p95 latency 0.32 s.
