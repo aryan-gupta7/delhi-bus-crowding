@@ -14,6 +14,7 @@ import pandas as pd
 from crowd.config import Config
 
 WEEKDAY, WEEKEND = "weekday", "weekend"
+DAY_TYPES = (WEEKDAY, WEEKEND)
 
 
 def _stream_hour_volumes(tickets: pd.DataFrame, days: np.ndarray) -> np.ndarray:

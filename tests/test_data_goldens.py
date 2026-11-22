@@ -29,7 +29,7 @@ def test_ticket_totals(ctx):
 
 def test_hour_tilt_basis_matches_the_calibrated_grid(ctx):
     z = hour_profile_z(ctx.store.read_table("counts.parquet"), "weekday")
-    assert abs((z[9] - z[13]) - 2.9) < 0.1
+    assert abs((z[9] - z[13]) - 3.0) < 0.1
 
 
 def test_eligibility_reproduces_the_october_anomalies(ctx):

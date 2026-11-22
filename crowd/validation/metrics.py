@@ -41,6 +41,23 @@ def spearman(a: np.ndarray, b: np.ndarray) -> float:
     return float(spearmanr(a, b)[0])
 
 
+def shape_agreement(pred: np.ndarray, target: np.ndarray, geo, min_flow: float, min_segments: int) -> float:
+    """Flow-weighted mean Spearman, across segments, within each route-hour (where along the route
+    the load peaks). ``pred`` and ``target`` are ``[n_seg, 24]``; route-hours with a small target
+    flow or few segments are ignored."""
+    total, weight = 0.0, 0.0
+    for r in range(geo.n_routes):
+        sl = geo.segs_of(r)
+        if sl.stop - sl.start < min_segments:
+            continue
+        for h in np.flatnonzero(target[sl].sum(axis=0) >= min_flow):
+            rho = spearman(pred[sl, h], target[sl, h])
+            if rho == rho:
+                total += rho * target[sl, h].sum()
+                weight += target[sl, h].sum()
+    return total / weight if weight else float("nan")
+
+
 def top_overlap(score: np.ndarray, target: np.ndarray, frac: float = 0.1) -> float:
     """Share of the model's top ``frac`` cells that are also in the target's top ``frac`` cells."""
     k = max(int(len(score) * frac), 1)

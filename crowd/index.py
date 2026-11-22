@@ -16,6 +16,8 @@ from crowd.gtfs import Geometry
 def weighted_percentile(values: np.ndarray, weights: np.ndarray, q: float | np.ndarray) -> np.ndarray:
     """Exposure-weighted percentile(s) ``q`` (0-100) of ``values``; zero-weight entries ignored."""
     keep = weights > 0
+    if not keep.any():
+        raise ValueError("no cell has positive exposure: nothing to take a percentile of")
     v, w = values[keep], weights[keep]
     order = np.argsort(v, kind="stable")
     v, w = v[order], w[order]
@@ -38,8 +40,9 @@ def hour_profile_z(counts: pd.DataFrame, day_type: str) -> np.ndarray:
     no longer span the flat-capture scenario.
     """
     sub = counts[counts["day_type"] == day_type]
-    n_days = sub["date"].nunique()
-    share = sub.groupby("hour")["n_tickets"].sum().reindex(range(24), fill_value=0).to_numpy(float) / max(n_days, 1)
+    n_days = sub.groupby("hour")["date"].nunique().reindex(range(24), fill_value=0).to_numpy(float)   # eligible days per hour
+    totals = sub.groupby("hour")["n_tickets"].sum().reindex(range(24), fill_value=0).to_numpy(float)
+    share = totals / np.maximum(n_days, 1)
     share = share / share.sum()
     return (share - share.mean()) / share.std()
 

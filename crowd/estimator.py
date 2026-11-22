@@ -28,10 +28,9 @@ from scipy.optimize import minimize_scalar
 from scipy.special import gammaln
 
 from crowd.config import Config
-from crowd.eligibility import WEEKDAY, WEEKEND
-from crowd.gtfs import Geometry
+from crowd.eligibility import DAY_TYPES, WEEKDAY, WEEKEND
+from crowd.gtfs import Geometry, route_key
 
-DAY_TYPES = (WEEKDAY, WEEKEND)
 DAYS_PER_WEEK = {WEEKDAY: 5, WEEKEND: 2}
 
 
@@ -131,13 +130,14 @@ class Estimator:
     rate: dict[str, np.ndarray]                          # posterior gamma rate   [R, 24]
     prior_mean: dict[str, np.ndarray]                    # Poisson-gamma prior mean mu [R, 24]
     total: dict[str, np.ndarray]                         # training ticket sums   [R, 24]
-    n_days: dict[str, np.ndarray]                        # eligible training days [24]
+    n_days: dict[str, np.ndarray]                        # eligible training days [R, 24]
     tier: dict[str, np.ndarray]                          # volume tier per cell   [R, 24]
     group: np.ndarray                                    # passengers per ticket  [R, 24]
     operators: list[np.ndarray] = field(default_factory=list)   # B[h', s*24+h] per route
     od_cov: list[np.ndarray] = field(default_factory=list)       # tickets covering each segment [bands, s]
     profiles: list[np.ndarray] = field(default_factory=list)     # OD probabilities by boarding hour [24, n, n]
     profile_strength: dict[str, list[float]] = field(default_factory=dict)  # fitted Dirichlet strengths per volume class
+    strength_scale: float = 1.0                                  # multiplier applied to those strengths
     band_names: list[str] = field(default_factory=list)
     band_of_hour: np.ndarray = field(default_factory=lambda: np.zeros(24, int))
 
@@ -166,10 +166,10 @@ class Estimator:
     def draw_lambda(self, day_type: str, pos: int, n_draws: int, seed: int) -> np.ndarray:
         """Posterior draws of Lambda for route ``pos``: [n_draws, 24].
 
-        Keyed by (seed, route, day-type), so draws do not depend on how many or which other
+        Keyed by (seed, route name, day-type), so draws do not depend on how many or which other
         routes are in the run.
         """
-        rng = np.random.default_rng([seed, int(self.routes[pos]), 0 if day_type == WEEKDAY else 1])
+        rng = np.random.default_rng([seed, route_key(self.geo.names[self.routes[pos]]), 0 if day_type == WEEKDAY else 1])
         shape = np.maximum(self.shape[day_type][pos], 1e-6)
         return rng.gamma(shape, 1.0 / self.rate[day_type][pos], size=(n_draws, 24))
 
@@ -178,15 +178,25 @@ class Estimator:
 # fitting
 # ----------------------------------------------------------------------------------------------
 
+def hour_bands(cfg: Config) -> tuple[list[str], np.ndarray]:
+    """Hour-band names (config order) and the band index of every clock hour."""
+    bands = cfg.estimator.hour_bands.to_dict()
+    band_of_hour = np.zeros(24, int)
+    for bi, hours in enumerate(bands.values()):
+        band_of_hour[list(hours)] = bi
+    return list(bands), band_of_hour
+
+
 def dense_counts(counts: pd.DataFrame, geo: Geometry, day_type: str, routes: np.ndarray):
     """Counts -> Y[R, 24, D] (NaN where the day-hour is not eligible), plus the date list."""
     sub = counts[counts["day_type"] == day_type]
-    dates = np.sort(sub["date"].unique())
     pos = np.full(geo.n_routes, -1)
     pos[routes] = np.arange(len(routes))
+    row = pos[geo.route_ix(sub["route"])]
+    sub, row = sub[row >= 0], row[row >= 0]          # routes outside ``routes`` are dropped, never aliased
+    dates = np.sort(sub["date"].unique())
     y = np.full((len(routes), 24, len(dates)), np.nan, dtype=np.float64)
-    y[pos[geo.route_ix(sub["route"])], sub["hour"].to_numpy(np.int64),
-      np.searchsorted(dates, sub["date"].to_numpy())] = sub["n_tickets"].to_numpy()
+    y[row, sub["hour"].to_numpy(np.int64), np.searchsorted(dates, sub["date"].to_numpy())] = sub["n_tickets"].to_numpy()
     return y
 
 
@@ -220,36 +230,37 @@ def _group_size(counts: pd.DataFrame, geo: Geometry, routes: np.ndarray, band_of
 
 
 def fit_estimator(counts: pd.DataFrame, od_pairs: pd.DataFrame, geo: Geometry, route_info: pd.DataFrame,
-                  cfg: Config, service: np.ndarray, train_dates: np.ndarray | None = None) -> Estimator:
+                  cfg: Config, service: np.ndarray, train_dates: np.ndarray | None = None,
+                  strength_scale: float = 1.0) -> Estimator:
     """Fit the estimator on ``counts`` / ``od_pairs`` (optionally restricted to ``train_dates``).
 
     ``service`` [n_routes, 24] marks route-hours with scheduled service: the prior mean is zero
     elsewhere, so a route is not given pseudo-demand at hours when it does not run.
+    ``strength_scale`` multiplies every fitted Dirichlet strength (chosen by ``tuning``); only
+    routes with at least one training ticket are modelled.
     """
     ecfg = cfg.estimator
     if train_dates is not None:
         counts = counts[counts["date"].isin(train_dates)]
         od_pairs = od_pairs[od_pairs["date"].isin(train_dates)]
-    band_names = list(ecfg.hour_bands.to_dict())
-    band_of_hour = np.zeros(24, int)
-    for bi, name in enumerate(band_names):
-        for h in ecfg.hour_bands.to_dict()[name]:
-            band_of_hour[h] = bi
+    band_names, band_of_hour = hour_bands(cfg)
 
-    routes = np.sort(geo.route_ix(pd.Series(counts["route"].unique())))
+    ticketed = counts.groupby("route")["n_tickets"].sum()
+    routes = np.sort(geo.route_ix(pd.Series(ticketed[ticketed > 0].index)))
     routes = routes[routes >= 0]
+    counts = counts[np.isin(geo.route_ix(counts["route"]), routes)]      # modelled routes only
     dir_class = route_info.set_index("route")["dir_class"].reindex(geo.names[routes]).to_numpy()
 
     shape, rate, total, tier, n_days, alpha, phi, prior = {}, {}, {}, {}, {}, {}, {}, {}
     for dt in DAY_TYPES:
         y = dense_counts(counts, geo, dt, routes)
-        n = (~np.isnan(y[0])).sum(axis=1).astype(float)                      # eligible days per hour
+        n = (~np.isnan(y)).sum(axis=2).astype(float)                         # eligible days per route-hour
         s = np.nansum(y, axis=2)
-        per_day = np.divide(s, n[None, :], out=np.zeros_like(s), where=n[None, :] > 0)
+        per_day = np.divide(s, n, out=np.zeros_like(s), where=n > 0)
         mu = per_day.sum(axis=1, keepdims=True) * _direction_shares(per_day, dir_class)
         mu = np.where(service[routes], mu, 0.0)
-        alpha[dt] = fit_alpha(mu.ravel(), s.ravel(), np.broadcast_to(n, s.shape).ravel())
-        shape[dt], rate[dt] = alpha[dt] * mu + s, alpha[dt] + n[None, :].repeat(len(routes), 0)
+        alpha[dt] = fit_alpha(mu.ravel(), s.ravel(), n.ravel())
+        shape[dt], rate[dt] = alpha[dt] * mu + s, alpha[dt] + n
         total[dt], n_days[dt], prior[dt] = s, n, mu
         tier[dt] = volume_tier(per_day, dt, cfg.validation.tier_edges)
         lam = shape[dt] / rate[dt]
@@ -261,7 +272,8 @@ def fit_estimator(counts: pd.DataFrame, od_pairs: pd.DataFrame, geo: Geometry, r
                     prior_mean=prior, total=total, n_days=n_days, tier=tier,
                     group=_group_size(counts, geo, routes, band_of_hour, len(band_names), ecfg.group_shrink),
                     band_names=band_names, band_of_hour=band_of_hour)
-    _build_operators(est, od_pairs, route_info, band_names)
+    est.strength_scale = strength_scale
+    _build_operators(est, od_pairs, band_names)
     return est
 
 
@@ -313,7 +325,7 @@ def _shrink(counts: np.ndarray, prior: np.ndarray, strength: float) -> np.ndarra
     return (counts + strength * prior) / (total + strength)
 
 
-def _build_operators(est: Estimator, od: pd.DataFrame, route_info: pd.DataFrame, band_names: list[str]) -> None:
+def _build_operators(est: Estimator, od: pd.DataFrame, band_names: list[str]) -> None:
     """Hierarchical Dirichlet OD profiles and the passage operator ``B[h', s, h]`` per route.
 
     Hierarchy (each strength fitted by marginal likelihood, sequentially):
@@ -366,7 +378,7 @@ def _build_operators(est: Estimator, od: pd.DataFrame, route_info: pd.DataFrame,
             members = [i for i, k in enumerate(vol_class) if k == cls]
             out.append(fit_dirichlet_strength([counts[i] for i in members], [priors[i] for i in members])
                        if members else pooled)
-        return np.array(out)
+        return np.array(out) * est.strength_scale
 
     all_day = [bh.sum(axis=0)[None] for bh in by_hour]
     k_route = fit_by_class(all_day, [p[None] for p in p_len])

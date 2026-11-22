@@ -103,12 +103,11 @@ def observed_flows(pairs: pd.DataFrame, geo: Geometry, day_hour_ok: pd.DataFrame
         ok = sub[sub["hour_ok"]]
         n_days = np.zeros(24)
         np.add.at(n_days, ok["hour"].to_numpy(), 1)
-        ok_keys = set(zip(ok["date"], ok["hour"]))
+        ok_hours = ok.groupby("date")["hour"].apply(set).to_dict()
         total = np.zeros(n_seg * 24)
         for day in day_list:
             day_t = pairs[pairs["date"] == day]
-            keep = np.fromiter(((day, h) in ok_keys for h in day_t["hour"].to_numpy()), bool, len(day_t))
-            day_t = day_t[keep]
+            day_t = day_t[day_t["hour"].isin(ok_hours.get(day, set()))]
             if day_t.empty:
                 continue
             route_ix = geo.route_ix(day_t["route"])

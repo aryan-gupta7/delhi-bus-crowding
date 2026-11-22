@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import bisect
 import re
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -28,6 +29,11 @@ class Gtfs:
     trips: pd.DataFrame        # trip_id, route
     stops: pd.DataFrame        # stop_id, stop_name, lat, lon
     stop_times: pd.DataFrame   # trip_id, stop_id, arr_min, dep_min (sorted by trip, sequence)
+
+
+def route_key(name: str) -> int:
+    """Stable integer key of a route name (random-stream keys must not depend on route order)."""
+    return zlib.crc32(name.encode())
 
 
 def haversine_m(lat1, lon1, lat2, lon2) -> np.ndarray:

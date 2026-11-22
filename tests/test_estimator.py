@@ -62,12 +62,36 @@ def test_length_profile_is_a_distribution_over_forward_pairs():
     assert np.isclose(p.sum(), 1.0) and np.allclose(np.tril(p), 0.0)
 
 
-def test_estimator_conserves_volume_on_the_mini_world(mini_ctx):
+def test_estimator_conserves_passenger_segments(mini_ctx):
+    """Sum of Q-hat over segments and hours = sum over boarding hours of lam_eff * E[ride segments | profile]."""
     from crowd import stages
     est = stages.estimator(mini_ctx)
     lam = est.lam_eff_mean("weekday")
-    q = est.qhat("weekday")
-    # total passenger-segments = sum over boarding tickets of the profile's mean ride length
-    assert q.sum() > 0 and lam.sum() > 0
-    r1 = stages.geometry(mini_ctx).route_index["R1UP"]
-    assert q[stages.geometry(mini_ctx).segs_of(r1)][:, 8].sum() > q[stages.geometry(mini_ctx).segs_of(r1)][:, 3].sum()
+    for pos in range(len(est.routes)):
+        n = est.profiles[pos].shape[1]
+        ride_len = np.array([(p * (np.arange(n)[None, :] - np.arange(n)[:, None])).sum() for p in est.profiles[pos]])
+        expected = float((lam[pos] * ride_len).sum())
+        got = float(est.qhat_route(pos, lam[pos]).sum())
+        assert np.isclose(got, expected, rtol=1e-4)
+
+
+def test_leakage_guard_training_fit_ignores_everything_outside_train_dates(mini_ctx):
+    """Perturb every count and OD row outside the training dates: the fit must not change at all."""
+    from crowd import stages
+    from crowd.estimator import fit_estimator
+    from crowd.validation.splits import weekday_split
+    st, geo = mini_ctx.store, stages.geometry(mini_ctx)
+    counts, od = st.read_table("counts.parquet"), st.read_table("od_pairs.parquet")
+    dh, info = st.read_table("day_hour_ok.parquet"), st.read_table("route_info.parquet")
+    train, _ = weekday_split(dh, mini_ctx.cfg)
+    service = stages.service(mini_ctx)
+    base = fit_estimator(counts, od, geo, info, mini_ctx.cfg, service, train_dates=train)
+    c2, o2 = counts.copy(), od.copy()
+    outside_c, outside_o = ~c2["date"].isin(train), ~o2["date"].isin(train)
+    c2.loc[outside_c, ["n_tickets", "pax"]] *= 7
+    o2.loc[outside_o, ["n_tickets", "pax"]] *= 7
+    other = fit_estimator(c2, o2, geo, info, mini_ctx.cfg, service, train_dates=train)
+    assert base.alpha == other.alpha and base.profile_strength == other.profile_strength
+    for dt in ("weekday", "weekend"):
+        assert np.array_equal(base.shape[dt], other.shape[dt]) and np.array_equal(base.tier[dt], other.tier[dt])
+        assert np.array_equal(base.phi[dt], other.phi[dt]) and np.array_equal(base.qhat(dt), other.qhat(dt))

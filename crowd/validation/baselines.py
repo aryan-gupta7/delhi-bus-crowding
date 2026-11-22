@@ -19,15 +19,14 @@ MEAN_FLOOR = 0.01       # a zero training mean would give -inf log score on any 
 
 def raw_means(est: Estimator, day_type: str) -> np.ndarray:
     """Per-cell raw training mean tickets per day (the MLE), floored. [R, 24]"""
-    n = np.maximum(est.n_days[day_type], 1)[None, :]
-    return np.maximum(est.total[day_type] / n, MEAN_FLOOR)
+    return np.maximum(est.total[day_type] / np.maximum(est.n_days[day_type], 1), MEAN_FLOOR)
 
 
 def flow_predictors(est: Estimator, geo: Geometry, b2_train_flow: np.ndarray, n_dense: np.ndarray,
                     seats_per_route: np.ndarray, day_type: str = "weekday") -> dict[str, np.ndarray]:
     """Per-(segment, hour) score predictors for the flow rank metrics."""
     raw = np.zeros((geo.n_routes, 24))
-    raw[est.routes] = est.total[day_type] / np.maximum(est.n_days[day_type], 1)[None, :]
+    raw[est.routes] = est.total[day_type] / np.maximum(est.n_days[day_type], 1)
     seg_route = np.repeat(np.arange(geo.n_routes), geo.n_stops - 1)
     b0 = raw[seg_route]
     n_route_hour = np.add.reduceat(n_dense, geo.seg_ptr[:-1], axis=0) / (geo.n_stops - 1)[:, None]

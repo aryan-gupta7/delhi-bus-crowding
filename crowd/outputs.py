@@ -6,10 +6,9 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from rapidfuzz import fuzz, process
-
 from crowd.config import Config
 from crowd.gtfs import Geometry
+from crowd.matching import fuzzy_pick, route_table
 from crowd.names import make_normaliser
 
 LEVEL_NAMES = {0: "No estimate", 1: "Lighter", 2: "Busy", 3: "Very busy"}
@@ -39,18 +38,19 @@ class StopResolver:
     def __init__(self, geo: Geometry, cfg: Config):
         self.geo = geo
         self.normalise = make_normaliser(dict(cfg.matching.abbreviations.to_dict()))
-        self.min_score = cfg.matching.fuzzy_score
+        self.min_score, self.margin = cfg.matching.fuzzy_score, cfg.matching.fuzzy_margin
 
     def resolve(self, route: str, name: str) -> int | None:
+        """First on-route index of the stop: exact normalised match, else the cascade's fuzzy match."""
         r = self.geo.route_index.get(route)
         if r is None:
             return None
-        names = [self.normalise(n) for n in self.geo.stop_name[self.geo.stops_of(r)]]
+        table = route_table(self.geo, r, self.normalise)
         target = self.normalise(name)
-        if target in names:
-            return names.index(target)
-        best = process.extractOne(target, names, scorer=fuzz.token_set_ratio)
-        return names.index(best[0]) if best and best[1] >= self.min_score else None
+        if target in table:
+            return table[target]
+        hit = fuzzy_pick(target, table, self.min_score, self.margin)
+        return hit[0] if hit else None
 
 
 def stretch_legs(geo: Geometry, route: str, a: int, b: int, depart_min: float) -> list[dict]:

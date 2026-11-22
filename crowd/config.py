@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -40,10 +41,22 @@ class Config:
         return self._data
 
     def hash(self, *sections: str) -> str:
-        """Stable SHA-256 of the whole config or of the named top-level sections."""
-        data = {k: self._data[k] for k in sections} if sections else self._data
+        """Stable SHA-256 of the named top-level sections, or of everything except ``paths``
+        (where files live must not change the identity of a run)."""
+        data = {k: self._data[k] for k in sections} if sections else {k: v for k, v in self._data.items() if k != "paths"}
         blob = json.dumps(data, sort_keys=True, default=str).encode()
         return hashlib.sha256(blob).hexdigest()
+
+    def with_overrides(self, overrides: dict[str, Any]) -> "Config":
+        """A copy with dotted keys replaced, e.g. ``{"ensemble.sigma_r": 0.9}`` (used by V3 and V9)."""
+        data = copy.deepcopy(self._data)
+        for dotted, value in overrides.items():
+            *parents, leaf = dotted.split(".")
+            node = data
+            for key in parents:
+                node = node[key]
+            node[leaf] = value
+        return Config(data, self.root)
 
     def path(self, key: str) -> Path:
         """Resolve ``paths.<key>`` relative to the directory holding config.yaml."""

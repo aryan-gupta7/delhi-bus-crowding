@@ -39,10 +39,17 @@ def cmd_gates(args: argparse.Namespace) -> int:
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    from crowd.validation.report import run_all
-    ctx = _context(args)
-    path = run_all(ctx)
+    from crowd.validation.report import ITEMS, run_all
+    only = tuple(args.only.split(",")) if args.only else ITEMS
+    path = run_all(_context(args), only)
     print(f"validation report: {path}")
+    return 0
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    import uvicorn
+    from crowd.api.app import create_app
+    uvicorn.run(create_app(_context(args)), host=args.host, port=args.port)
     return 0
 
 
@@ -67,7 +74,12 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--stage", help="run only this stage")
     p_run.set_defaults(func=cmd_run)
     p_val = sub.add_parser("validate", help="held-out validation (V1 ...) -> out/validation/report.md")
+    p_val.add_argument("--only", help="comma-separated subset of v1,v7,v8,v9,v10,v3 (default: all)")
     p_val.set_defaults(func=cmd_validate)
+    p_serve = sub.add_parser("serve", help="planner API and web page")
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=8000)
+    p_serve.set_defaults(func=cmd_serve)
     p_query = sub.add_parser("query", help="crowding along one bus ride")
     p_query.add_argument("--route", required=True)
     p_query.add_argument("--from", dest="from_stop", required=True)

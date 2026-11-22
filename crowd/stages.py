@@ -7,13 +7,13 @@ import json
 import numpy as np
 import pandas as pd
 
-from crowd import eligibility, flows, gtfs, ingest, matching, supply as supply_mod
+from crowd import eligibility, flows, gtfs, ingest, matching, supply as supply_mod, tuning
+from crowd.eligibility import DAY_TYPES
 from crowd.estimator import fit_estimator
 from crowd.ensemble import run_ensemble
 from crowd.index import hour_profile_z
 from crowd.pipeline import Context, Stage
 
-DAY_TYPES = ("weekday", "weekend")
 
 
 # -- shared lazily built objects ------------------------------------------------------------------
@@ -28,10 +28,18 @@ def tickets(ctx: Context) -> pd.DataFrame:
 
 
 def estimator(ctx: Context):
-    """Estimator fitted on all eligible days (cached per run)."""
-    return ctx.memo("estimator", lambda: fit_estimator(
-        ctx.store.read_table("counts.parquet"), ctx.store.read_table("od_pairs.parquet"),
-        geometry(ctx), ctx.store.read_table("route_info.parquet"), ctx.cfg, service=service(ctx)))
+    """Estimator fitted on all eligible days with the profile-shrinkage multiplier chosen by an inner
+    day-blocked split (cached per run; the choice is recorded in ``ctx.cache['strength_tuning']``)."""
+    def build():
+        st, geo, cfg = ctx.store, geometry(ctx), ctx.cfg
+        counts, od, info = st.read_table("counts.parquet"), st.read_table("od_pairs.parquet"), st.read_table("route_info.parquet")
+        dhok = st.read_table("day_hour_ok.parquet")
+        pairs = flows.matched_pairs(tickets(ctx), st.read_table("ticket_stops.parquet"))
+        weekdays = np.sort(dhok[(dhok["day_type"] == "weekday") & dhok["hour_ok"]]["date"].unique())
+        scale, scores = tuning.choose_strength_scale(counts, od, pairs, dhok, geo, info, service(ctx), cfg, weekdays)
+        ctx.cache["strength_tuning"] = {"chosen": scale, "shape_score_by_scale": scores}
+        return fit_estimator(counts, od, geo, info, cfg, service=service(ctx), strength_scale=scale)
+    return ctx.memo("estimator", build)
 
 
 def service(ctx: Context) -> np.ndarray:
@@ -93,23 +101,6 @@ def stage_flows(ctx: Context) -> None:
     bands = ctx.cfg.estimator.hour_bands.to_dict()
     ctx.store.write_table("counts.parquet", flows.build_counts(df, geo, dhok))
     ctx.store.write_table("od_pairs.parquet", flows.build_od_pairs(df, resolved, dhok, bands))
-    sums = flows.observed_flows(flows.matched_pairs(df, resolved), geo, dhok, dhok["date"].unique(),
-                                ctx.cfg.flows.gamma)
-    ctx.store.write_table("q_emp.parquet", _flow_table(sums, geo))
-
-
-def _flow_table(sums: dict[str, flows.FlowSums], geo: gtfs.Geometry) -> pd.DataFrame:
-    seg_route = np.repeat(np.arange(geo.n_routes), geo.n_stops - 1)
-    seg_local = np.arange(int(geo.seg_ptr[-1])) - geo.seg_ptr[seg_route]
-    frames = []
-    for day_type in sorted(sums):
-        per_day = sums[day_type].per_day()
-        g, h = np.nonzero(per_day)
-        frames.append(pd.DataFrame({
-            "route": geo.names[seg_route[g]], "seg": seg_local[g].astype(np.int16), "hour": h.astype(np.int8),
-            "day_type": day_type, "pax_per_day": per_day[g, h].astype(np.float32),
-            "n_days": sums[day_type].n_days[h].astype(np.int16)}))
-    return pd.concat(frames, ignore_index=True).sort_values(["day_type", "route", "seg", "hour"]).reset_index(drop=True)
 
 
 def stage_supply(ctx: Context) -> None:
@@ -131,6 +122,9 @@ def stage_model(ctx: Context) -> None:
         frames.append(pd.DataFrame({"route": geo.names[seg_route[g]], "seg": seg_local[g].astype(np.int16),
                                     "hour": h.astype(np.int8), "day_type": day_type, "qhat": q[g, h]}))
     ctx.store.write_table("qhat.parquet", pd.concat(frames, ignore_index=True))
+    ctx.store.write_json("estimator_fit.json", {
+        "strength_tuning": ctx.cache["strength_tuning"], "strengths_used": est.profile_strength,
+        "alpha": est.alpha, "phi": {k: v.tolist() for k, v in est.phi.items()}, "routes_modelled": len(est.routes)})
 
 
 def stage_ensemble(ctx: Context) -> None:
@@ -140,7 +134,8 @@ def stage_ensemble(ctx: Context) -> None:
     counts = ctx.store.read_table("counts.parquet")
     z = {dt: hour_profile_z(counts, dt) for dt in DAY_TYPES}
     result = run_ensemble(est, dense, ctx.store.read_table("route_seats.parquet"), route_coverage_array(ctx),
-                          ctx.store.read_table("route_info.parquet"), z, ctx.cfg)
+                          ctx.store.read_table("route_info.parquet"), z, ctx.cfg,
+                          frozen_cuts=ctx.cache.get("frozen_cuts"))
     ctx.store.write_table("crowding_cells.parquet", result.cells)
     ctx.store.write_array("levels.npy", result.levels)
     ctx.store.write_json("cuts.json", {"cuts": {k: {"central": v["central"], "draws": v["draws"]}
@@ -179,6 +174,10 @@ def stage_gates(ctx: Context) -> None:
     ctx.store.write_json("gates.json", gates.run_gates(ctx))
 
 
+# everything the estimator (incl. its tuning split) reads
+MODEL_INPUTS = ("counts.parquet", "od_pairs.parquet", "route_info.parquet", "patterns.parquet", "segments.parquet",
+                "trip_stops.parquet", "tickets.parquet", "ticket_stops.parquet", "day_hour_ok.parquet")
+
 STAGES: list[Stage] = [
     Stage("ingest", stage_ingest, ("raw:tickets",), ("tickets.parquet", "ingest_report.json"),
           (), ("ingest", "stages")),
@@ -192,18 +191,17 @@ STAGES: list[Stage] = [
           ("matching", "names", "stages")),
     Stage("flows", stage_flows, ("tickets.parquet", "ticket_stops.parquet", "day_hour_ok.parquet",
                                  "patterns.parquet", "segments.parquet"),
-          ("counts.parquet", "od_pairs.parquet", "q_emp.parquet"), ("flows", "estimator"), ("flows", "stages")),
+          ("counts.parquet", "od_pairs.parquet"), ("flows", "estimator"), ("flows", "stages")),
     Stage("supply", stage_supply, ("tickets.parquet", "trip_stops.parquet", "patterns.parquet", "segments.parquet"),
           ("supply.parquet", "route_seats.parquet"), ("supply",), ("supply", "stages")),
-    Stage("model", stage_model, ("counts.parquet", "od_pairs.parquet", "route_info.parquet", "patterns.parquet",
-                                 "segments.parquet", "trip_stops.parquet"),
-          ("qhat.parquet",), ("estimator", "validation"), ("estimator", "supply", "stages")),
-    Stage("ensemble", stage_ensemble, ("counts.parquet", "od_pairs.parquet", "route_info.parquet", "supply.parquet",
-                                       "trip_stops.parquet",
-                                       "route_seats.parquet", "coverage.parquet", "patterns.parquet", "segments.parquet"),
+    Stage("model", stage_model, MODEL_INPUTS, ("qhat.parquet", "estimator_fit.json"),
+          ("estimator", "flows", "supply", "validation"),
+          ("estimator", "tuning", "supply", "flows", "validation/targets", "validation/metrics", "stages")),
+    Stage("ensemble", stage_ensemble, MODEL_INPUTS + ("supply.parquet", "route_seats.parquet", "coverage.parquet"),
           ("crowding_cells.parquet", "levels.npy", "cuts.json"),
-          ("estimator", "ensemble", "index", "tiers", "validation"),
-          ("ensemble", "index", "tiers", "estimator", "supply", "stages")),
+          ("estimator", "flows", "supply", "validation", "ensemble", "index", "tiers"),
+          ("estimator", "tuning", "supply", "flows", "ensemble", "index", "tiers", "validation/targets",
+           "validation/metrics", "stages")),
     Stage("gates", stage_gates, ("tickets.parquet", "ticket_stops.parquet", "day_hour_ok.parquet", "coverage.parquet",
                                  "stop_matches.parquet", "route_info.parquet", "route_seats.parquet", "counts.parquet",
                                  "trip_stops.parquet", "crowding_cells.parquet", "patterns.parquet", "segments.parquet"),

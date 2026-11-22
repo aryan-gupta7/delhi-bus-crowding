@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delhi bus crowding planner</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>Delhi bus crowding planner</h1>
+  <nav>
+    <button id="tab-plan" class="tab active" data-tab="plan">Plan a trip</button>
+    <button id="tab-operator" class="tab" data-tab="operator">Operator view</button>
+  </nav>
+</header>
+<main>
+  <section id="panel">
+    <div id="plan" class="pane">
+      <form id="plan-form" autocomplete="off">
+        <label>From <input id="from" list="from-list" placeholder="Start typing a stop name" required></label>
+        <datalist id="from-list"></datalist>
+        <label>To <input id="to" list="to-list" placeholder="Start typing a stop name" required></label>
+        <datalist id="to-list"></datalist>
+        <div class="row">
+          <label>Leave at <input id="time" type="time" value="09:00" required></label>
+          <label>Day <select id="day"><option value="weekday">Weekday</option><option value="weekend">Weekend / holiday</option></select></label>
+        </div>
+        <button type="submit">Show options</button>
+      </form>
+      <div id="status" role="status"></div>
+      <div id="cards"></div>
+      <p id="footnotes" class="muted"></p>
+    </div>
+    <div id="operator" class="pane" hidden>
+      <div class="row">
+        <label>Day <select id="op-day"><option value="weekday">Weekday</option><option value="weekend">Weekend / holiday</option></select></label>
+        <label>Hour on map <select id="op-hour"></select></label>
+      </div>
+      <p class="muted">Worst stretch of each route by hour (busiest routes first). Click a route to draw it on the map.
+         Hatched = low evidence; dashed = no estimate.</p>
+      <div id="heatmap"></div>
+    </div>
+  </section>
+  <div id="map" aria-label="Map"></div>
+</main>
+<div id="legend">
+  <span class="chip l1">● Lighter</span><span class="chip l2">●● Busy</span><span class="chip l3">●●● Very busy</span>
+  <span class="chip l0">? No estimate</span>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

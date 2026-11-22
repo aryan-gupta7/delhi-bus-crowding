@@ -31,6 +31,18 @@ def test_stretch_pressure_is_invariant_to_splitting_a_segment():
     assert np.allclose(stretch_pi(q1, z1, whole)[0], stretch_pi(q2, z2, split)[0])
 
 
+def test_hour_profile_z_divides_each_hour_by_its_own_eligible_days():
+    import pandas as pd
+    days = pd.date_range("2026-10-05", periods=4)
+    rows = [(d, h, 10 if h == 9 else 2) for d in days for h in range(24) if not (h == 9 and d == days[0])]   # 09h masked on day 0
+    counts = pd.DataFrame(rows, columns=["date", "hour", "n_tickets"]).assign(day_type="weekday")
+    z = hour_profile_z(counts, "weekday")
+    # every day that is eligible at 09h carries 10 tickets, so 09h share is 10 per day, not 30/4
+    share = np.where(np.arange(24) == 9, 10.0, 2.0)
+    expected = (share / share.sum() - 1 / 24) / (share / share.sum()).std()
+    assert np.allclose(z, expected)
+
+
 def test_hour_profile_z_is_standardised():
     import pandas as pd
     counts = pd.DataFrame({"day_type": "weekday", "date": pd.Timestamp("2026-10-05"),

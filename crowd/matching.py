@@ -22,15 +22,12 @@ from crowd.gtfs import Geometry, haversine_m
 from crowd.names import make_normaliser, split_composite
 
 
-def _route_tables(geo: Geometry, normalise) -> list[dict[str, int]]:
-    """Per route: normalised stop name -> first canonical index."""
-    tables: list[dict[str, int]] = []
-    for r in range(geo.n_routes):
-        t: dict[str, int] = {}
-        for i, name in enumerate(geo.stop_name[geo.stops_of(r)]):
-            t.setdefault(normalise(name), i)
-        tables.append(t)
-    return tables
+def route_table(geo: Geometry, r: int, normalise) -> dict[str, int]:
+    """Normalised stop name -> first canonical index on route ``r``."""
+    table: dict[str, int] = {}
+    for i, name in enumerate(geo.stop_name[geo.stops_of(r)]):
+        table.setdefault(normalise(name), i)
+    return table
 
 
 def _global_coords(stops: pd.DataFrame, normalise) -> dict[str, np.ndarray]:
@@ -49,12 +46,13 @@ def match_names(pairs: pd.DataFrame, geo: Geometry, stops: pd.DataFrame, cfg: Co
     """
     mcfg = cfg.matching
     normalise = make_normaliser(dict(mcfg.abbreviations.to_dict()))
-    tables = _route_tables(geo, normalise)
+    tables = [route_table(geo, r, normalise) for r in range(geo.n_routes)]
     coords = _global_coords(stops, normalise)
     pair_route = geo.route_ix(pairs["route"])
 
     idx = np.full(len(pairs), -1, dtype=np.int32)
     method = np.full(len(pairs), "none", dtype=object)
+    score = np.full(len(pairs), np.nan)
     for k, (r, name) in enumerate(zip(pair_route, pairs["name"].to_numpy())):
         if r < 0:
             continue
@@ -69,25 +67,27 @@ def match_names(pairs: pd.DataFrame, geo: Geometry, stops: pd.DataFrame, cfg: Co
         if hit is not None:
             idx[k], method[k] = hit, "split"
             continue
-        hit = _fuzzy(norm, table, mcfg.fuzzy_score, mcfg.fuzzy_margin)
+        hit = fuzzy_pick(norm, table, mcfg.fuzzy_score, mcfg.fuzzy_margin)
         if hit is not None:
-            idx[k], method[k] = hit, "fuzzy"
+            (idx[k], score[k]), method[k] = hit, "fuzzy"
             continue
         hit = _by_coordinates(parts or [norm], coords, geo, r, mcfg.coord_radius_m)
         if hit is not None:
             idx[k], method[k] = hit, "coord"
+    matched = np.array([geo.stop_name[geo.stops_of(r)][i] if (r >= 0 and i >= 0) else "" for r, i in zip(pair_route, idx)],
+                       dtype=object)
     return pd.DataFrame({"route": pairs["route"].to_numpy(), "name": pairs["name"].to_numpy(),
-                         "idx": idx, "method": method})
+                         "idx": idx, "method": method, "matched_name": matched, "score": score})
 
 
-def _fuzzy(norm: str, table: dict[str, int], min_score: float, margin: float) -> int | None:
-    """Best on-route token-set match, accepted only if clear of the runner-up."""
+def fuzzy_pick(norm: str, table: dict[str, int], min_score: float, margin: float) -> tuple[int, float] | None:
+    """Best on-route token-set match ``(index, score)``, accepted only if clear of the runner-up."""
     best = process.extract(norm, list(table), scorer=fuzz.token_set_ratio, limit=2)
     if not best or best[0][1] < min_score:
         return None
     if len(best) > 1 and best[0][1] - best[1][1] < margin:
         return None
-    return table[best[0][0]]
+    return table[best[0][0]], float(best[0][1])
 
 
 def _by_coordinates(names: list[str], coords: dict[str, np.ndarray], geo: Geometry, r: int,

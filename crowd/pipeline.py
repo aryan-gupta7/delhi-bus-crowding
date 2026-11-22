@@ -67,7 +67,7 @@ class Context:
 def _source_hash(modules: tuple[str, ...]) -> str:
     h = hashlib.sha256()
     for m in modules:
-        h.update((PACKAGE_DIR / f"{m}.py").read_bytes())
+        h.update((PACKAGE_DIR / f"{m}.py").read_bytes())   # m may be "validation/targets"
     return h.hexdigest()
 
 

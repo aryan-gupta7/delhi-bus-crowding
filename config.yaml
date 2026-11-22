@@ -65,6 +65,10 @@ estimator:                   # S5
   radial_min_diff_km: 3.0    # route is radial if first/last stop differ this much in distance to centroid
   centroid: [28.6329, 77.2195]   # Connaught Place (lat, lon)
   min_hour_cells: 5          # min cells with data to fit alpha / phi
+  strength_scale_grid: [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]   # multipliers tried on the fitted Dirichlet strengths
+  tuning_train_share: 0.65   # inner split of the training days used to choose the multiplier
+  shape_min_flow: 20         # route-hours with at least this target flow (pax/day) enter the shape score
+  shape_min_segments: 8      # ... and at least this many segments
 
 index:                       # S6
   p_r1: 50                   # level 1/2 boundary percentile
@@ -87,8 +91,17 @@ tiers:                       # business-logic.md §4
 validation:                  # §9
   train_days: 11
   tier_edges: [10, 75]       # tickets/cell-week: <10, 10-74, >=75
-  min_rank_cells: 1000
   od_floor: 0.01             # uniform mixture weight applied to every OD model before scoring
+  hub_names:                 # V7: named hubs expected on busy stretches (an assumption, not data)
+    - Anand Vihar
+    - Kashmere Gate
+    - Azadpur
+    - Nehru Place
+    - Lajpat Nagar
+    - Hauz Khas
+    - Dhaula Kuan
+    - Sarai Kale Khan
+  n_queries: 200             # V8/V9/V10 random queries
 
 planner:                     # business-logic.md §8
   walk_radius_m: 400         # P-R9
