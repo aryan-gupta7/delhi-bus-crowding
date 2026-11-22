@@ -31,7 +31,13 @@ def estimator(ctx: Context):
     """Estimator fitted on all eligible days (cached per run)."""
     return ctx.memo("estimator", lambda: fit_estimator(
         ctx.store.read_table("counts.parquet"), ctx.store.read_table("od_pairs.parquet"),
-        geometry(ctx), ctx.store.read_table("route_info.parquet"), ctx.cfg))
+        geometry(ctx), ctx.store.read_table("route_info.parquet"), ctx.cfg, service=service(ctx)))
+
+
+def service(ctx: Context) -> np.ndarray:
+    """Route-hours with scheduled service, from the mapped GTFS trips."""
+    return ctx.memo("service", lambda: supply_mod.route_hour_service(
+        ctx.store.read_table("trip_stops.parquet"), geometry(ctx)))
 
 
 def route_coverage_array(ctx: Context) -> np.ndarray:
@@ -190,13 +196,18 @@ STAGES: list[Stage] = [
     Stage("supply", stage_supply, ("tickets.parquet", "trip_stops.parquet", "patterns.parquet", "segments.parquet"),
           ("supply.parquet", "route_seats.parquet"), ("supply",), ("supply", "stages")),
     Stage("model", stage_model, ("counts.parquet", "od_pairs.parquet", "route_info.parquet", "patterns.parquet",
-                                 "segments.parquet"),
-          ("qhat.parquet",), ("estimator", "validation"), ("estimator", "stages")),
+                                 "segments.parquet", "trip_stops.parquet"),
+          ("qhat.parquet",), ("estimator", "validation"), ("estimator", "supply", "stages")),
     Stage("ensemble", stage_ensemble, ("counts.parquet", "od_pairs.parquet", "route_info.parquet", "supply.parquet",
+                                       "trip_stops.parquet",
                                        "route_seats.parquet", "coverage.parquet", "patterns.parquet", "segments.parquet"),
           ("crowding_cells.parquet", "levels.npy", "cuts.json"),
           ("estimator", "ensemble", "index", "tiers", "validation"),
-          ("ensemble", "index", "tiers", "estimator", "stages")),
+          ("ensemble", "index", "tiers", "estimator", "supply", "stages")),
+    Stage("gates", stage_gates, ("tickets.parquet", "ticket_stops.parquet", "day_hour_ok.parquet", "coverage.parquet",
+                                 "stop_matches.parquet", "route_info.parquet", "route_seats.parquet", "counts.parquet",
+                                 "trip_stops.parquet", "crowding_cells.parquet", "patterns.parquet", "segments.parquet"),
+          ("gates.json",), ("gates", "flows", "tiers"), ("gates", "stages")),
     Stage("outputs", stage_outputs, ("crowding_cells.parquet", "stretches.parquet", "patterns.parquet", "segments.parquet"),
           ("stretches.geojson", "route_hour_matrix.csv"), (), ("stages",)),
 ]

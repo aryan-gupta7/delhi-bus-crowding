@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 
@@ -25,6 +26,37 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gates(args: argparse.Namespace) -> int:
+    from crowd.stages import STAGES
+    ctx = _context(args)
+    run([s for s in STAGES if s.name == "gates"] or [], ctx, force=True)
+    results = ctx.store.read_json("gates.json")
+    failed = [g for g in results if g["passed"] is False and g["blocking"]]
+    for g in results:
+        mark = {True: "PASS", False: "FAIL", None: "info"}[g["passed"]]
+        print(f"{g['id']:<4}{mark:<5}{g['name']}: {g['value']}  {g['note']}")
+    return 1 if failed else 0
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    from crowd.validation.report import run_all
+    ctx = _context(args)
+    path = run_all(ctx)
+    print(f"validation report: {path}")
+    return 0
+
+
+def cmd_query(args: argparse.Namespace) -> int:
+    from crowd import stages
+    from crowd.outputs import CrowdingTable, StopResolver, query
+    ctx = _context(args)
+    table = CrowdingTable.load(ctx.store.read_table("crowding_cells.parquet"), ctx.store.read_array("levels.npy"))
+    geo = stages.geometry(ctx)
+    result = query(table, geo, StopResolver(geo, ctx.cfg), args.route, args.from_stop, args.to_stop, args.time, args.day)
+    print(json.dumps(result, indent=2))
+    return 0 if "error" not in result else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="crowd", description=__doc__)
     parser.add_argument("--config", default="config.yaml")
@@ -34,6 +66,17 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--force", action="store_true", help="re-run every stage")
     p_run.add_argument("--stage", help="run only this stage")
     p_run.set_defaults(func=cmd_run)
+    p_val = sub.add_parser("validate", help="held-out validation (V1 ...) -> out/validation/report.md")
+    p_val.set_defaults(func=cmd_validate)
+    p_query = sub.add_parser("query", help="crowding along one bus ride")
+    p_query.add_argument("--route", required=True)
+    p_query.add_argument("--from", dest="from_stop", required=True)
+    p_query.add_argument("--to", dest="to_stop", required=True)
+    p_query.add_argument("--time", default="09:00")
+    p_query.add_argument("--day", default="weekday", choices=["weekday", "weekend"])
+    p_query.set_defaults(func=cmd_query)
+    p_gates = sub.add_parser("gates", help="run gates G1-G7 and print the table (non-zero exit on blocking failure)")
+    p_gates.set_defaults(func=cmd_gates)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING,
                         format="%(asctime)s %(levelname)s %(message)s")

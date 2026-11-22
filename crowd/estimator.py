@@ -8,8 +8,8 @@ P(pass s in h | h', i, s)`` where
   hour ``h'`` (all route-resolved tickets, decision D-1), with a Poisson-gamma posterior, zero days
   counted, a direction-class prior share and a day-level dispersion ``phi`` for held-out days;
 * ``G`` converts tickets to passengers (group size, shrunk to the citywide value);
-* ``P_band`` is the board->alight distribution of matched tickets in the hour band (hard fall-back
-  to the route's all-day profile, then to a length-class profile);
+* the OD profile is a hierarchical Dirichlet: length-class profile -> route all-day -> hour band ->
+  boarding hour, each strength fitted by marginal likelihood (no hard fall-back rules);
 * the convolution is closed-form: boarding uniform within the hour, so a segment ``delta``
   minutes downstream is passed ``floor(delta/60)`` hours later with probability ``1 - f`` and one
   hour later still with probability ``f = (delta mod 60) / 60``.
@@ -33,7 +33,6 @@ from crowd.gtfs import Geometry
 
 DAY_TYPES = (WEEKDAY, WEEKEND)
 DAYS_PER_WEEK = {WEEKDAY: 5, WEEKEND: 2}
-SOURCE_CODES = {"band": 0, "route": 1, "length": 2}
 
 
 # ----------------------------------------------------------------------------------------------
@@ -130,13 +129,15 @@ class Estimator:
     phi: dict[str, np.ndarray]                           # per day-type, per volume tier
     shape: dict[str, np.ndarray]                         # posterior gamma shape  [R, 24]
     rate: dict[str, np.ndarray]                          # posterior gamma rate   [R, 24]
+    prior_mean: dict[str, np.ndarray]                    # Poisson-gamma prior mean mu [R, 24]
     total: dict[str, np.ndarray]                         # training ticket sums   [R, 24]
     n_days: dict[str, np.ndarray]                        # eligible training days [24]
     tier: dict[str, np.ndarray]                          # volume tier per cell   [R, 24]
     group: np.ndarray                                    # passengers per ticket  [R, 24]
     operators: list[np.ndarray] = field(default_factory=list)   # B[h', s*24+h] per route
     od_cov: list[np.ndarray] = field(default_factory=list)       # tickets covering each segment [bands, s]
-    profile_source: np.ndarray = field(default_factory=lambda: np.zeros((0, 0), int))
+    profiles: list[np.ndarray] = field(default_factory=list)     # OD probabilities by boarding hour [24, n, n]
+    profile_strength: dict[str, list[float]] = field(default_factory=dict)  # fitted Dirichlet strengths per volume class
     band_names: list[str] = field(default_factory=list)
     band_of_hour: np.ndarray = field(default_factory=lambda: np.zeros(24, int))
 
@@ -181,7 +182,7 @@ class Estimator:
 # fitting
 # ----------------------------------------------------------------------------------------------
 
-def _dense_counts(counts: pd.DataFrame, geo: Geometry, day_type: str, routes: np.ndarray):
+def dense_counts(counts: pd.DataFrame, geo: Geometry, day_type: str, routes: np.ndarray):
     """Counts -> Y[R, 24, D] (NaN where the day-hour is not eligible), plus the date list."""
     sub = counts[counts["day_type"] == day_type]
     dates = np.sort(sub["date"].unique())
@@ -222,8 +223,12 @@ def _group_size(counts: pd.DataFrame, geo: Geometry, routes: np.ndarray, band_of
 
 
 def fit_estimator(counts: pd.DataFrame, od_pairs: pd.DataFrame, geo: Geometry, route_info: pd.DataFrame,
-                  cfg: Config, train_dates: np.ndarray | None = None) -> Estimator:
-    """Fit the estimator on ``counts`` / ``od_pairs`` (optionally restricted to ``train_dates``)."""
+                  cfg: Config, service: np.ndarray, train_dates: np.ndarray | None = None) -> Estimator:
+    """Fit the estimator on ``counts`` / ``od_pairs`` (optionally restricted to ``train_dates``).
+
+    ``service`` [n_routes, 24] marks route-hours with scheduled service: the prior mean is zero
+    elsewhere, so a route is not given pseudo-demand at hours when it does not run.
+    """
     ecfg = cfg.estimator
     if train_dates is not None:
         counts = counts[counts["date"].isin(train_dates)]
@@ -238,16 +243,17 @@ def fit_estimator(counts: pd.DataFrame, od_pairs: pd.DataFrame, geo: Geometry, r
     routes = routes[routes >= 0]
     dir_class = route_info.set_index("route")["dir_class"].reindex(geo.names[routes]).to_numpy()
 
-    shape, rate, total, tier, n_days, alpha, phi = {}, {}, {}, {}, {}, {}, {}
+    shape, rate, total, tier, n_days, alpha, phi, prior = {}, {}, {}, {}, {}, {}, {}, {}
     for dt in DAY_TYPES:
-        y = _dense_counts(counts, geo, dt, routes)
+        y = dense_counts(counts, geo, dt, routes)
         n = (~np.isnan(y[0])).sum(axis=1).astype(float)                      # eligible days per hour
         s = np.nansum(y, axis=2)
         per_day = np.divide(s, n[None, :], out=np.zeros_like(s), where=n[None, :] > 0)
         mu = per_day.sum(axis=1, keepdims=True) * _direction_shares(per_day, dir_class)
+        mu = np.where(service[routes], mu, 0.0)
         alpha[dt] = fit_alpha(mu.ravel(), s.ravel(), np.broadcast_to(n, s.shape).ravel())
         shape[dt], rate[dt] = alpha[dt] * mu + s, alpha[dt] + n[None, :].repeat(len(routes), 0)
-        total[dt], n_days[dt] = s, n
+        total[dt], n_days[dt], prior[dt] = s, n, mu
         tier[dt] = volume_tier(per_day, dt, cfg.validation.tier_edges)
         lam = shape[dt] / rate[dt]
         phi[dt] = np.array([
@@ -255,15 +261,68 @@ def fit_estimator(counts: pd.DataFrame, od_pairs: pd.DataFrame, geo: Geometry, r
             for t in range(len(cfg.validation.tier_edges) + 1)])
 
     est = Estimator(geo=geo, cfg=cfg, routes=routes, alpha=alpha, phi=phi, shape=shape, rate=rate,
-                    total=total, n_days=n_days, tier=tier,
+                    prior_mean=prior, total=total, n_days=n_days, tier=tier,
                     group=_group_size(counts, geo, routes, band_of_hour, len(band_names), ecfg.group_shrink),
                     band_names=band_names, band_of_hour=band_of_hour)
     _build_operators(est, od_pairs, route_info, band_names)
     return est
 
 
+def _route_counts(est: Estimator, pos: int, rows: pd.DataFrame | None, n_bands: int):
+    """Matched-ticket OD counts of one route by hour, plus per-band segment coverage."""
+    geo = est.geo
+    r = int(est.routes[pos])
+    n = int(geo.n_stops[r])
+    by_hour = np.zeros((24, n, n))
+    cov = np.zeros((n_bands, n - 1))
+    if rows is not None and len(rows):
+        w = rows["n_tickets"].to_numpy(float)
+        np.add.at(by_hour, (rows["hour"].to_numpy(np.int64), rows["a"].to_numpy(), rows["b"].to_numpy()), w)
+        diff = np.zeros((n_bands, n + 1))
+        np.add.at(diff, (rows["band_i"].to_numpy(), rows["a"].to_numpy()), w)
+        np.add.at(diff, (rows["band_i"].to_numpy(), rows["b"].to_numpy()), -w)
+        cov = np.cumsum(diff, axis=1)[:, : n - 1]
+    return by_hour, cov
+
+
+def fit_dirichlet_strength(counts: list[np.ndarray], priors: list[np.ndarray]) -> float:
+    """Empirical-Bayes strength ``kappa`` of a Dirichlet prior by marginal likelihood.
+
+    ``counts[i]`` and ``priors[i]`` are ``[groups, n, n]`` stacks of observed OD counts and the
+    prior probabilities they are shrunk toward. Only observed pairs enter the likelihood.
+    """
+    cs, ps, totals = [], [], []
+    for c_stack, p_stack in zip(counts, priors):
+        for c, p in zip(c_stack, p_stack):
+            nz = c > 0
+            if nz.any():
+                cs.append(c[nz])
+                ps.append(np.maximum(p[nz], 1e-9))
+                totals.append(c.sum())
+    if not cs:                       # nothing observed: the prior is all there is
+        return 1.0
+    c, p, tot = np.concatenate(cs), np.concatenate(ps), np.asarray(totals)
+
+    def neg_ll(log_k: float) -> float:
+        k = np.exp(log_k)
+        return -float(np.sum(gammaln(k) - gammaln(k + tot)) + np.sum(gammaln(c + k * p) - gammaln(k * p)))
+
+    return float(np.exp(minimize_scalar(neg_ll, bounds=(-2.0, 10.0), method="bounded").x))
+
+
+def _shrink(counts: np.ndarray, prior: np.ndarray, strength: float) -> np.ndarray:
+    """Dirichlet posterior mean: ``(counts + strength * prior) / (total + strength)`` per group."""
+    total = counts.sum(axis=(-2, -1), keepdims=True)
+    return (counts + strength * prior) / (total + strength)
+
+
 def _build_operators(est: Estimator, od: pd.DataFrame, route_info: pd.DataFrame, band_names: list[str]) -> None:
-    """Per route: band OD profiles (with fall-backs), segment coverage and the passage operator."""
+    """Hierarchical Dirichlet OD profiles and the passage operator ``B[h', s, h]`` per route.
+
+    Hierarchy (each strength fitted by marginal likelihood, sequentially):
+    length-class profile -> route all-day -> hour band -> boarding hour. A route with no matched
+    tickets simply inherits the length-class profile; no hard fall-back rules are needed.
+    """
     geo, ecfg = est.geo, est.cfg.estimator
     n_bands = len(band_names)
     hours_of_band = [list(np.flatnonzero(est.band_of_hour == b)) for b in range(n_bands)]
@@ -277,35 +336,62 @@ def _build_operators(est: Estimator, od: pd.DataFrame, route_info: pd.DataFrame,
     len_class = np.searchsorted(edges, n_stops, side="right")
     grids = _length_grids(by_route, n_stops, len_class, ecfg.length_classes, ecfg.length_grid)
 
-    est.profile_source = np.zeros((len(est.routes), n_bands), int)
-    for pos, r in enumerate(est.routes):
+    counted = [_route_counts(est, pos, by_route.get(int(r)), n_bands) for pos, r in enumerate(est.routes)]
+    by_hour = [c[0] for c in counted]
+    est.od_cov = [c[1].astype(np.float32) for c in counted]
+
+    def band_stack(x: np.ndarray) -> np.ndarray:
+        return np.stack([x[hours].sum(axis=0) for hours in hours_of_band])
+
+    def band_to_hours(x: np.ndarray) -> np.ndarray:
+        out = np.zeros((24,) + x.shape[1:])
+        for b, hours in enumerate(hours_of_band):
+            out[hours] = x[b]
+        return out
+
+    mix = ecfg.length_uniform_mix
+    p_len = []
+    for r, _ in zip(est.routes, by_hour):
+        n = int(n_stops[r])
+        tri = np.triu(np.ones((n, n)), k=1)
+        p_len.append((1 - mix) * _length_grid_profile(n, grids[len_class[r]]) + mix * tri / tri.sum())
+
+    # Strengths are fitted per route-volume class: big routes have real hour-to-hour differences
+    # (e.g. AM vs PM directionality) that a single citywide strength would shrink away.
+    volume = np.array([bh.sum() for bh in by_hour])
+    cut = np.quantile(volume, np.linspace(0, 1, ecfg.strength_classes + 1)[1:-1])
+    vol_class = np.searchsorted(cut, volume, side="right")
+
+    def fit_by_class(counts: list[np.ndarray], priors: list[np.ndarray]) -> np.ndarray:
+        pooled = fit_dirichlet_strength(counts, priors)      # used by classes with no routes (tiny inputs)
+        out = []
+        for cls in range(ecfg.strength_classes):
+            members = [i for i, k in enumerate(vol_class) if k == cls]
+            out.append(fit_dirichlet_strength([counts[i] for i in members], [priors[i] for i in members])
+                       if members else pooled)
+        return np.array(out)
+
+    all_day = [bh.sum(axis=0)[None] for bh in by_hour]
+    k_route = fit_by_class(all_day, [p[None] for p in p_len])
+    p_route = [_shrink(a, p[None], k_route[c])[0] for a, p, c in zip(all_day, p_len, vol_class)]
+
+    by_band = [band_stack(bh) for bh in by_hour]
+    k_band = fit_by_class(by_band, [np.repeat(p[None], n_bands, 0) for p in p_route])
+    p_band = [_shrink(b, p[None], k_band[c]) for b, p, c in zip(by_band, p_route, vol_class)]
+
+    k_hour = fit_by_class(by_hour, [band_to_hours(p) for p in p_band])
+    est.profile_strength = {"route": k_route.tolist(), "band": k_band.tolist(), "hour": k_hour.tolist()}
+    est.operators, est.profiles = [], []
+    for r, bh, pb, cls in zip(est.routes, by_hour, p_band, vol_class):
         r = int(r)
-        n, n_seg = int(n_stops[r]), int(n_stops[r]) - 1
+        n_seg = int(n_stops[r]) - 1
         off = geo.off_min[geo.stops_of(r)].astype(float)
-        rows = by_route.get(r)
-        counts = np.zeros((n_bands, n, n))
-        cov = np.zeros((n_bands, n_seg))
-        if rows is not None and len(rows):
-            np.add.at(counts, (rows["band_i"].to_numpy(), rows["a"].to_numpy(), rows["b"].to_numpy()),
-                      rows["n_tickets"].to_numpy(float))
-            diff = np.zeros((n_bands, n + 1))
-            np.add.at(diff, (rows["band_i"].to_numpy(), rows["a"].to_numpy()), rows["n_tickets"].to_numpy(float))
-            np.add.at(diff, (rows["band_i"].to_numpy(), rows["b"].to_numpy()), -rows["n_tickets"].to_numpy(float))
-            cov = np.cumsum(diff, axis=1)[:, :n_seg]
-        all_day = counts.sum(axis=0)
+        probs = _shrink(bh, band_to_hours(pb), k_hour[cls])
         op = np.zeros((24, n_seg, 24))
-        for b in range(n_bands):
-            if counts[b].sum() >= ecfg.min_pairs:
-                prof, src = counts[b], "band"
-            elif all_day.sum() >= ecfg.min_pairs:
-                prof, src = all_day, "route"
-            else:
-                prof, src = _length_grid_profile(n, grids[len_class[r]]), "length"
-            est.profile_source[pos, b] = SOURCE_CODES[src]
-            prof = prof / prof.sum() if prof.sum() > 0 else prof
-            _operator_from_profile(prof, off, hours_of_band[b], n_seg, op)
+        for h in range(24):
+            _operator_from_profile(probs[h], off, [h], n_seg, op)
+        est.profiles.append(probs.astype(np.float32))
         est.operators.append(op.reshape(24, n_seg * 24).astype(np.float32))
-        est.od_cov.append(cov.astype(np.float32))
 
 
 def _length_grids(by_route: dict[int, pd.DataFrame], n_stops: np.ndarray, len_class: np.ndarray,

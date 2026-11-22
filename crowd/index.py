@@ -66,3 +66,16 @@ class StretchGrid:
         sums = np.add.reduceat(x, self.starts, axis=0)
         lens = np.diff(np.r_[self.starts, len(x)])
         return sums / lens.reshape(-1, *([1] * (x.ndim - 1)))
+
+
+def stretch_pi(q: np.ndarray, z: np.ndarray, geo: Geometry) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Aggregate segment flows ``q [n_seg, 24]`` and seats ``z [n_seg, 24]`` to stretches (all routes).
+
+    Returns ``(pi, passenger_minutes, has_service)`` each ``[n_stretch, 24]``; ``pi`` is passenger-
+    minutes over seat-minutes (design M4).
+    """
+    tau = geo.tau_min.astype(np.float64)[:, None]
+    num = np.add.reduceat(q * tau, geo.stretch_starts, axis=0)
+    den = np.add.reduceat(z * tau, geo.stretch_starts, axis=0)
+    has = den > 0
+    return np.divide(num, den, out=np.zeros_like(num, dtype=np.float64), where=has), num, has

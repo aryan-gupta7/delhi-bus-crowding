@@ -241,6 +241,8 @@ class Geometry:
     tau_min: np.ndarray          # per segment
     len_m: np.ndarray            # per segment
     stretch_id: np.ndarray       # per segment
+    stretch_starts: np.ndarray   # first segment of every stretch (all routes, in segment order)
+    stretch_route: np.ndarray    # route index of every stretch
     route_index: dict[str, int]
 
     @classmethod
@@ -249,13 +251,16 @@ class Geometry:
         names = p["route"].drop_duplicates().to_numpy()
         n_stops = p.groupby("route", sort=False).size().to_numpy()
         s = segments.sort_values(["route", "seg"], kind="stable")
+        seg_route = np.repeat(np.arange(len(names)), n_stops - 1)
+        sid = s["stretch_id"].to_numpy(np.int32)
+        starts = np.flatnonzero(np.r_[True, (sid[1:] != sid[:-1]) | (seg_route[1:] != seg_route[:-1])])
         return cls(
             names=names, n_stops=n_stops,
             stop_ptr=np.r_[0, np.cumsum(n_stops)], seg_ptr=np.r_[0, np.cumsum(n_stops - 1)],
             off_min=p["off_min"].to_numpy(np.float32), stop_id=p["stop_id"].to_numpy(),
             stop_name=p["stop_name"].to_numpy(), lat=p["lat"].to_numpy(), lon=p["lon"].to_numpy(),
             tau_min=s["tau_min"].to_numpy(np.float32), len_m=s["len_m"].to_numpy(np.float32),
-            stretch_id=s["stretch_id"].to_numpy(np.int32),
+            stretch_id=sid, stretch_starts=starts, stretch_route=seg_route[starts],
             route_index={r: i for i, r in enumerate(names)},
         )
 

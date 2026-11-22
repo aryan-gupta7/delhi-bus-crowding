@@ -25,6 +25,12 @@ def build_trip_counts(trip_stops: pd.DataFrame, geo: Geometry) -> np.ndarray:
     return counts.reshape(n_seg, 24).astype(np.float32)
 
 
+def route_hour_service(trip_stops: pd.DataFrame, geo: Geometry) -> np.ndarray:
+    """[n_routes, 24] bool: the route has a scheduled bus passing some segment in that hour."""
+    per_route = np.add.reduceat(build_trip_counts(trip_stops, geo), geo.seg_ptr[:-1], axis=0)
+    return per_route > 0
+
+
 def route_seats(tickets: pd.DataFrame, geo: Geometry, cfg: Config) -> pd.DataFrame:
     """Seats per bus by route: vehicle-weighted AC share x configured seat counts (A-9).
 

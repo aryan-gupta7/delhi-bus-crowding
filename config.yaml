@@ -58,9 +58,10 @@ estimator:                   # S5
     eve: [20, 21, 22]
     night: [23, 0, 1, 2, 3, 4, 5]
   group_shrink: 50           # P-M15
-  min_pairs: 20              # P-M16
   length_classes: 5          # quintiles of pattern length for the OD fallback
   length_grid: 10            # normalised-position grid for the length-class OD profile
+  strength_classes: 4        # route-volume classes with their own Dirichlet strengths
+  length_uniform_mix: 0.05   # uniform mass mixed into the length-class profile so no i<j pair has zero prior
   radial_min_diff_km: 3.0    # route is radial if first/last stop differ this much in distance to centroid
   centroid: [28.6329, 77.2195]   # Connaught Place (lat, lon)
   min_hour_cells: 5          # min cells with data to fit alpha / phi
@@ -87,7 +88,7 @@ validation:                  # §9
   train_days: 11
   tier_edges: [10, 75]       # tickets/cell-week: <10, 10-74, >=75
   min_rank_cells: 1000
-  add_k: 0.5
+  od_floor: 0.01             # uniform mixture weight applied to every OD model before scoring
 
 planner:                     # business-logic.md §8
   walk_radius_m: 400         # P-R9
@@ -103,3 +104,9 @@ planner:                     # business-logic.md §8
   min_advantage_frac: 0.10
   overall_leg_share: 0.25    # P-R15
   gamma_max: 10.0            # P-R16
+
+gates:                       # design/mechanism.md §5
+  min_top250_coverage: 0.65  # G2 target (passenger-weighted both-ends match, top-250 routes)
+  min_shift_rank_corr: 0.95  # P-M8 / G6
+  fare_check_sample: 200000  # tickets per match class for the fare-vs-distance precision proxy
+  oracle: tests/oracles/october_anomalies.yaml   # G1 regression oracle (never read by the pipeline)

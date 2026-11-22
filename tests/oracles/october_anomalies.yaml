@@ -1,0 +1,10 @@
+# Known anomalies of the October ticket file found by profiling (design/mechanism.md S0).
+# Used ONLY by gate G1 (a regression test of the eligibility rule); never read by the pipeline.
+outage_hours:                 # (date: hours that must be masked)
+  "2026-10-06": [9, 10]
+  "2026-10-29": [21, 22, 23]
+stream_fault_days: ["2026-10-17", "2026-10-18", "2026-10-19"]
+holiday_like_days: ["2026-10-02", "2026-10-20"]
+tolerated_extra_masks:        # harmless extra masks on holiday-like days
+  "2026-10-02": [9, 23]
+sunday_peak_hours: [6, 7, 8, 9, 17, 18, 19, 20]   # must never be masked on Sundays
