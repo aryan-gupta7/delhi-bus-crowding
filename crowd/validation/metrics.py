@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.special import gammaln
-from scipy.stats import nbinom, spearmanr
+from scipy.stats import beta, nbinom, spearmanr
 
 
 def poisson_logpmf(y: np.ndarray, mean: np.ndarray) -> np.ndarray:
@@ -56,6 +56,15 @@ def shape_agreement(pred: np.ndarray, target: np.ndarray, geo, min_flow: float, 
                 total += rho * target[sl, h].sum()
                 weight += target[sl, h].sum()
     return total / weight if weight else float("nan")
+
+
+def clopper_pearson(successes: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
+    """Exact (Clopper-Pearson) confidence interval for a binomial proportion."""
+    if n == 0:
+        return float("nan"), float("nan")
+    lo = 0.0 if successes == 0 else float(beta.ppf(alpha / 2, successes, n - successes + 1))
+    hi = 1.0 if successes == n else float(beta.ppf(1 - alpha / 2, successes + 1, n - successes))
+    return lo, hi
 
 
 def top_overlap(score: np.ndarray, target: np.ndarray, frac: float = 0.1) -> float:

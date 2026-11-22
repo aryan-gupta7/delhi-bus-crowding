@@ -52,15 +52,14 @@ def run_v3(ctx: Context) -> pd.DataFrame:
             csv = tmp / f"{name.replace(' ', '_')}.csv"
             _slice_csv(cfg.path("tickets"), csv, keep)
             cfg_slice = cfg.with_overrides({"paths.tickets": str(csv), "paths.out": str(tmp / f"out_{name.replace(' ', '_')}")})
-            sctx = Context(cfg=cfg_slice, store=Store(cfg_slice.path("out")), cache={"frozen_cuts": frozen})
+            sctx = Context(cfg=cfg_slice, store=Store(cfg_slice.path("out")), frozen_cuts=frozen)
             run(RUNNABLE, sctx)
             n, kappa = _agreement(ref.read_table("crowding_cells.parquet"), sctx.store.read_table("crowding_cells.parquet"))
             same_gtfs = all(sctx.store.sha256(f) == ref.sha256(f) for f in ("patterns.parquet", "stretches.parquet", "segments.parquet"))
             rows += [
-                {"check": f"{name}: pipeline completes on a new file", "result": "yes", "passed": True},
                 {"check": f"{name}: GTFS-only artefacts (patterns, segments, stretches) bit-identical to the reference", "result": same_gtfs, "passed": same_gtfs},
                 {"check": f"{name}: weekday level agreement with the reference (frozen cuts), weighted kappa on {n:,} cells",
-                 "result": round(kappa, 3), "passed": bool(kappa > 0.4)},
+                 "result": round(kappa, 3), "passed": bool(kappa >= cfg.validation.v3_min_kappa)},
             ]
         fresh_cfg = cfg.with_overrides({"paths.out": str(tmp / "out_fresh")})
         fresh = Context(cfg=fresh_cfg, store=Store(fresh_cfg.path("out")))

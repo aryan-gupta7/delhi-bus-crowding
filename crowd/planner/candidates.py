@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import numpy as np
+
 from crowd.config import Config
 from crowd.gtfs import Geometry
 from crowd.planner.search import StopIndex
@@ -42,10 +44,6 @@ class Option:
     @property
     def total_min(self) -> float:
         return self.arrive_min - self.depart_min
-
-    @property
-    def in_vehicle_min(self) -> float:
-        return sum(leg.alight_min - leg.board_min for leg in self.legs)
 
     @property
     def route_key(self) -> tuple[str, ...]:
@@ -83,12 +81,11 @@ class CandidateGenerator:
         out = []
         for r, i in boardings:
             ids = self.geo.stop_id[self.geo.stops_of(r)]
-            row = self.tables.next_trip(r, i, depart_min)
-            if row is None:
+            times = self.tables.next_departure(r, i, depart_min)
+            if times is None:
                 continue
-            times = self.tables.dep[r][row]
             for j in range(i + 1, len(ids)):
-                if ids[j] in dest and times[j] == times[j]:
+                if ids[j] in dest and not np.isnan(times[j]):
                     leg = Leg(self.geo.names[r], r, i, j, float(times[i]), float(times[j]))
                     out.append(Option([leg], depart_min, float(times[j]), 0.0))
                     break
@@ -98,13 +95,12 @@ class CandidateGenerator:
         into_dest = self._routes_into(dest)
         out = []
         for r1, i1 in boardings:
-            row1 = self.tables.next_trip(r1, i1, depart_min)
-            if row1 is None:
+            times1 = self.tables.next_departure(r1, i1, depart_min)
+            if times1 is None:
                 continue
             ids1 = self.geo.stop_id[self.geo.stops_of(r1)]
-            times1 = self.tables.dep[r1][row1]
             for k in range(i1 + 1, len(ids1)):
-                if times1[k] != times1[k]:
+                if np.isnan(times1[k]):
                     continue
                 for sid2, walk in self.stops.neighbours(ids1[k]):
                     for r2, i2 in self.stops.routes_at[sid2]:
@@ -124,13 +120,12 @@ class CandidateGenerator:
         return into
 
     def _connect(self, r1, i1, k, times1, r2, i2, walk, dest, depart_min) -> Option | None:
-        row2 = self.tables.next_trip(r2, i2, float(times1[k]) + walk + self.min_transfer)
-        if row2 is None:
+        times2 = self.tables.next_departure(r2, i2, float(times1[k]) + walk + self.min_transfer)
+        if times2 is None:
             return None
         ids2 = self.geo.stop_id[self.geo.stops_of(r2)]
-        times2 = self.tables.dep[r2][row2]
         for j in range(i2 + 1, len(ids2)):
-            if ids2[j] in dest and times2[j] == times2[j]:
+            if ids2[j] in dest and not np.isnan(times2[j]):
                 legs = [Leg(self.geo.names[r1], r1, i1, k, float(times1[i1]), float(times1[k])),
                         Leg(self.geo.names[r2], r2, i2, j, float(times2[i2]), float(times2[j]))]
                 return Option(legs, depart_min, float(times2[j]), walk)

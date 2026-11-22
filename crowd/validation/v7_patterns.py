@@ -43,37 +43,35 @@ def _directionality(qhat: pd.DataFrame, info: pd.DataFrame) -> list[dict]:
     ]
 
 
-def _hubs(ctx: Context, hub_names: list[str]) -> dict:
-    """Share of named hubs that sit on at least one top-decile weekday 09h stretch (hub list is an assumption)."""
+def _percentile_of_best_stretch(ctx: Context, names: list[str]) -> dict[str, float]:
+    """For each name found in the GTFS: the percentile (among weekday 09h stretches) of the highest pressure
+    on any stretch next to a stop of that name."""
     geo = stages.geometry(ctx)
-    cells = ctx.store.read_table("crowding_cells.parquet", ["route", "stretch_id", "hour", "day_type", "pi_central"])
-    nine = cells[(cells["hour"] == 9) & (cells["day_type"] == "weekday")]
-    cut = nine["pi_central"].quantile(0.9)
-    top = set(zip(nine.loc[nine["pi_central"] >= cut, "route"], nine.loc[nine["pi_central"] >= cut, "stretch_id"]))
+    cells = ctx.store.read_table("crowding_cells.parquet", ["route", "stretch_id", "hour", "day_type", "pi_central", "tier"])
+    nine = cells[(cells["hour"] == 9) & (cells["day_type"] == "weekday") & (cells["tier"] != "No estimate")]
+    pct = nine["pi_central"].rank(pct=True)
+    pct_of = dict(zip(zip(nine["route"], nine["stretch_id"]), pct))
     norm = make_normaliser(dict(ctx.cfg.matching.abbreviations.to_dict()))
-    names = np.array([norm(n) for n in geo.stop_name])
+    stop_names = np.array([norm(n) for n in geo.stop_name]).astype(str)
     stop_route = np.repeat(np.arange(geo.n_routes), geo.n_stops)
-    found, on_top = [], []
-    for hub in hub_names:
-        hits = np.flatnonzero(np.char.find(names.astype(str), norm(hub)) >= 0)
-        if not len(hits):
-            continue
-        found.append(hub)
-        stretches = set()
-        for flat in hits:
+    out = {}
+    for name in names:
+        best = None
+        for flat in np.flatnonzero(np.char.find(stop_names, norm(name)) >= 0):
             r = stop_route[flat]
             local = flat - geo.stop_ptr[r]
             for seg in (local - 1, local):
                 if 0 <= seg < geo.n_stops[r] - 1:
-                    stretches.add((geo.names[r], int(geo.stretch_id[geo.seg_ptr[r] + seg])))
-        if stretches & top:
-            on_top.append(hub)
-    return {"found": found, "on_top": on_top}
+                    p = pct_of.get((geo.names[r], int(geo.stretch_id[geo.seg_ptr[r] + seg])))
+                    best = p if best is None or (p is not None and p > best) else best
+        if best is not None:
+            out[name] = float(best)
+    return out
 
 
 def run_v7(ctx: Context) -> pd.DataFrame:
     """Evaluate all pattern assertions on the pipeline outputs."""
-    st = ctx.store
+    st, vcfg = ctx.store, ctx.cfg.validation
     qhat = st.read_table("qhat.parquet")
     info = st.read_table("route_info.parquet")
     dh = st.read_table("day_hour_ok.parquet")
@@ -83,26 +81,29 @@ def run_v7(ctx: Context) -> pd.DataFrame:
     mid = wk[list(MIDDAY)].mean()
     peaks = {k: wk[list(h)].max() / mid for k, h in PEAKS.items()}
     rows.append(_row("two weekday peaks: AM and PM peak hour each >= 1.5x the midday mean hour",
-                     {k: round(float(v), 2) for k, v in peaks.items()}, ">= 1.5", all(v >= 1.5 for v in peaks.values())))
+                     {k: round(float(v), 2) for k, v in peaks.items()}, ">= 1.5", all(v >= 1.5 for v in peaks.values()),
+                     "weak: the ticket hour profile is carried into the estimate by construction"))
     ratio_wk = wk[6:22].max() / mid
     ratio_we = we[6:22].max() / we[list(MIDDAY)].mean()
     rows.append(_row("weekend peak-to-midday ratio is below the weekday ratio",
                      f"{ratio_we:.2f} vs {ratio_wk:.2f}", "weekend < weekday", ratio_we < ratio_wk))
     rows += _directionality(qhat, info)
 
-    totals = dh.groupby(["date", "day_type"]).agg(pax=("v_null", "sum"), tagged=("v_tagged", "sum"), ok=("day_ok", "first")).reset_index()
-    totals["pax"] += totals["tagged"]
-    med = totals[totals["ok"]].groupby("day_type")["pax"].median()
-    rows.append(_row("weekend/holiday days carry fewer tickets than weekdays (median daily passengers)",
-                     f"{med['weekend']:.0f} vs {med['weekday']:.0f}", "weekend < 0.9 x weekday", med["weekend"] < 0.9 * med["weekday"]))
+    daily = dh.assign(pax=dh["v_null"] + dh["v_tagged"]).groupby("date").agg(pax=("pax", "sum"), ok=("day_ok", "first")).reset_index()
+    daily = daily[daily["ok"]]
+    sundays = daily[pd.DatetimeIndex(daily["date"]).dayofweek == 6]["pax"].median()
+    weekdays = daily[pd.DatetimeIndex(daily["date"]).dayofweek < 5]["pax"].median()
+    rows.append(_row("Sundays carry fewer tickets than weekdays (median daily passengers; real Sundays only, so the "
+                     "day-type rule cannot decide it)", f"{sundays:.0f} vs {weekdays:.0f}", "Sunday < 0.9 x weekday", sundays < 0.9 * weekdays))
 
     am_pm = wk[list(PEAKS["am"])].mean() / wk[list(PEAKS["pm"])].mean()
     rows.append(_row("code check: AM/PM peak ratio of passenger-segments", round(float(am_pm), 2), "about 1.5 (profiled)",
                      0.8 <= am_pm <= 2.5, "the data assert this about themselves; kept only to catch a code bug"))
 
-    hubs = _hubs(ctx, list(ctx.cfg.validation.hub_names))
-    share = len(hubs["on_top"]) / max(len(hubs["found"]), 1)
-    rows.append(_row("named hubs sit on top-decile weekday 09h stretches", f"{len(hubs['on_top'])}/{len(hubs['found'])}",
-                     ">= 50% of hubs found in the GTFS", share >= 0.5,
-                     f"hub list is an assumption (config validation.hub_names); on top: {hubs['on_top']}"))
+    hubs, controls = (_percentile_of_best_stretch(ctx, list(vcfg[k])) for k in ("hub_names", "control_names"))
+    hub_med, control_med = float(np.median(list(hubs.values()))), float(np.median(list(controls.values())))
+    rows.append(_row("named hubs' busiest stretch ranks above suburban end-points (09h pressure percentile)",
+                     f"hubs {hub_med:.2f} (n={len(hubs)}) vs controls {control_med:.2f} (n={len(controls)})",
+                     f"hub median >= {vcfg.min_hub_percentile} and > controls", hub_med >= vcfg.min_hub_percentile and hub_med > control_med,
+                     "hub and control lists are assumptions (config validation.hub_names / control_names)"))
     return pd.DataFrame(rows)

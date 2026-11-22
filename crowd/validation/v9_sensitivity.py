@@ -19,9 +19,8 @@ from crowd.outputs import CrowdingTable
 from crowd.pipeline import Context
 from crowd.planner.service import Planner
 from crowd.validation.queries import Query
+from crowd.validation.v8_planner import HOUR_BANDS
 
-HOUR_BANDS = {"peak am (07-10)": range(7, 11), "midday (11-16)": range(11, 17), "peak pm (17-20)": range(17, 21)}
-ROUTE_SWITCH_THRESHOLDS = {"sigma 0.4": 1.61, "sigma 0.9": 2.91}      # exp(0.84 * sigma * sqrt(2)), from the design
 
 
 def smooth_hours(dense: dict) -> dict:
@@ -53,7 +52,8 @@ def _plans(planner: Planner, queries: list[Query]) -> pd.DataFrame:
         calmer = out["cards"].get("comfortable")
         rows.append({"hour": q.hour, "shown": calmer is not None,
                      "calmer_routes": tuple(leg["route"] for leg in calmer["legs"]) if calmer else None,
-                     "gamma_star": ev.get("gamma_star")})
+                     "has_advantage": bool(ev) and ev["central_advantage_min"] is not None and ev["central_advantage_min"] >= ev["margin_min"],
+                     "gamma_star": ev.get("gamma_star"), "gamma_status": ev.get("gamma_star_status")})
     return pd.DataFrame(rows)
 
 
@@ -109,11 +109,18 @@ def run_v9(ctx: Context, planner: Planner, queries: list[Query]) -> dict[str, pd
         rows.append(row)
         if name.startswith("base"):                 # Gamma* is computed at the central scenario, so sigma does not move it
             gammas.append(plans.assign(setting=name))
-    g = pd.concat(gammas)
-    g = g[g["gamma_star"].notna()]
-    gamma_tbl = pd.DataFrame([{
-        "setting": name, "queries with Gamma*": len(sub), "median": float(sub["gamma_star"].median()),
-        "p90": float(sub["gamma_star"].quantile(0.9)),
-        **{f"share >= {thr}x ({label})": float((sub["gamma_star"] >= thr).mean()) for label, thr in ROUTE_SWITCH_THRESHOLDS.items()},
-    } for name, sub in g.groupby("setting")])
-    return {"sensitivity": pd.DataFrame(rows), "gamma_star": gamma_tbl}
+    return {"sensitivity": pd.DataFrame(rows), "gamma_star": _gamma_table(pd.concat(gammas), cfg)}
+
+
+def _gamma_table(plans: pd.DataFrame, cfg) -> pd.DataFrame:
+    """Gamma* of candidates that had a central advantage (the others carry no recommendation), shown vs
+    suppressed. "beyond max" counts as infinite; a route switch needs coverage to differ by
+    exp(0.84 * sigma * sqrt(2)) to pass 80% on the route effect alone, at the base sigma and at 0.9."""
+    thresholds = {f"sigma {s:g}": float(np.exp(0.84 * s * np.sqrt(2))) for s in (cfg.ensemble.sigma_r, 0.9)}
+    cand = plans[plans["has_advantage"] & plans["gamma_status"].isin(["finite", "beyond_max", "already_below"])].copy()
+    cand["gamma"] = np.where(cand["gamma_status"] == "beyond_max", np.inf, cand["gamma_star"])
+    rows = []
+    for shown, sub in cand.groupby("shown"):
+        rows.append({"candidates": "shown" if shown else "suppressed", "n": len(sub), "median Gamma*": float(sub["gamma"].median()),
+                     **{f"share >= {thr:.2f}x ({label})": float((sub["gamma"] >= thr).mean()) for label, thr in thresholds.items()}})
+    return pd.DataFrame(rows)

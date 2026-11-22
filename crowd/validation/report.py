@@ -8,10 +8,10 @@ import pandas as pd
 
 from crowd.pipeline import Context
 from crowd.planner.service import load_planner
-from crowd.validation import v1_holdout, v3_rerun, v7_patterns, v8_planner, v9_sensitivity, v10_stability
+from crowd.validation import v1_holdout, v3_rerun, v7_patterns, v8_planner, v9_sensitivity, v10_stability, v11_weekly
 from crowd.validation.queries import PEAK_HOURS, sample_queries
 
-ITEMS = ("v1", "v7", "v8", "v9", "v10", "v3")
+ITEMS = ("v1", "v7", "v8", "v9", "v10", "v11", "v3")
 MIDDAY_HOURS = tuple(range(11, 17))
 CANNOT_SHOW = (
     "**What no metric here can show:** crowding truth (the passengers per seat a rider meets). "
@@ -74,19 +74,28 @@ def run_all(ctx: Context, only: tuple[str, ...] = ITEMS) -> Path:
         routes = ctx.store.read_table("counts.parquet", ["route"])["route"].unique()
         routes = planner.geo.route_ix(pd.Series(routes))
         n = ctx.cfg.validation.n_queries
-        queries = (sample_queries(planner, routes, int(n * 0.7), seed=1, hours=PEAK_HOURS)
-                   + sample_queries(planner, routes, n - int(n * 0.7), seed=2, hours=MIDDAY_HOURS))
+        n_peak = int(n * ctx.cfg.validation.peak_query_share)
+        queries = (sample_queries(planner, routes, n_peak, seed=1, hours=PEAK_HOURS)
+                   + sample_queries(planner, routes, n - n_peak, seed=2, hours=MIDDAY_HOURS))
         if "v8" in only:
             v8 = v8_planner.run_v8(planner, queries)
-            parts += _section("V8-lite: planner on random queries", markdown_table(v8_planner.summarise(v8)))
+            parts += _section("V8-lite: planner on random queries (each query is a ride on one scheduled route, so a direct "
+                              "journey always exists: 'answered' is a light check)", markdown_table(v8_planner.summarise(v8)))
         if "v9" in only:
             v9 = v9_sensitivity.run_v9(ctx, planner, queries)
             parts += _section("V9: sensitivity of recommendations to the invented assumptions",
                               markdown_table(v9["sensitivity"]), "### Robustness value Gamma* (smallest coverage difference that erases the advantage)",
                               markdown_table(v9["gamma_star"]))
         if "v10" in only:
-            parts += _section("V10: do recommendations made on training days hold on held-out days?",
-                              markdown_table(v10_stability.run_v10(ctx, planner, est, inp, train, queries)))
+            v10 = v10_stability.run_v10(ctx, planner, est, inp, train, queries)
+            parts += _section("V10: do recommendations made on training days hold on held-out days? (week-to-week stability "
+                              "under the same unidentified scale; not a test of correctness)", markdown_table(v10),
+                              "Queries not judged: " + ", ".join(f"{k}: {v}" for k, v in v10.attrs["dropped"].items()))
+    if "v11" in only:
+        weekly = v11_weekly.run_v11(ctx)
+        parts += _section("V11: week-to-week stability (model fitted separately on each full weekday week)", markdown_table(weekly),
+                          f"{len(weekly)} pair(s) of consecutive full weeks: October has full five-day weekday weeks on 5-9, 12-16 and 26-30 Oct "
+                          "(19-23 Oct loses a day to a stream fault and a holiday), so the pairs are 5/12 Oct and 12/26 Oct (the latter skips a week).")
     if "v3" in only:
         parts += _section("V3: rerun on new files (time slices, frozen thresholds)", markdown_table(v3_rerun.run_v3(ctx)))
     parts += [CANNOT_SHOW, ""]

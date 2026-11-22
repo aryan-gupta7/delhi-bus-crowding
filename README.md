@@ -29,7 +29,7 @@ Ticket CSV columns: `passenger_count, amount, vehicle_number, ticket_type_id, en
 start_stop_name, created_at (IST, ISO 8601), is_ac`. `route` equals GTFS `route_short_name` (e.g. `102ADOWN`).
 
 **Rerunning on another ticket file or month:** change `paths.tickets` in `config.yaml` (or copy the file and
-pass `--config other.yaml`) and run `make all`. Nothing in the code names a date, route or stop; the
+pass `--config other.yaml`) and run `make all`; `python -m crowd run --frozen-cuts out/cuts.json` scores a new file against a reference run's band cuts. Nothing in the code names a date, route or stop; the
 eligibility rule (which days and hours count) is data-driven. `crowd validate --only v3` runs the pipeline
 on two time slices and checks that frozen thresholds and GTFS-only artefacts carry over.
 
@@ -86,7 +86,7 @@ design/ docs/ reviews/   design docs, short docs, independent reviews of the des
   sensitivity analysis over an assumed family (θ, ε), **not a posterior probability**.
 * Seat counts per bus (39 AC / 35 non-AC) are an assumption: the tickets carry no bus length. Gate G3 stays open.
 * The planner uses the static timetable: travel times are scheduled, crowding is "usually", never live.
-* ~20% of ticket stop names remain unmatched, concentrated at hubs, so pinch points are biased away from hubs.
+* About 12% of ticket stop-name weight (and 20% of passengers have at least one end unmatched) remains unmatched, concentrated at hubs, so pinch points are biased away from hubs.
 * Weekend/holiday results are rougher (one all-days GTFS service; evidence tier capped at Low).
 * Validation checks the estimator of the sampled process on held-out days. It cannot show crowding truth.
   See `out/validation/report.md` for what was measured, including where the model does **not** beat a baseline.

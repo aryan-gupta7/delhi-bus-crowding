@@ -65,7 +65,7 @@ estimator:                   # S5
   radial_min_diff_km: 3.0    # route is radial if first/last stop differ this much in distance to centroid
   centroid: [28.6329, 77.2195]   # Connaught Place (lat, lon)
   min_hour_cells: 5          # min cells with data to fit alpha / phi
-  strength_scale_grid: [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]   # multipliers tried on the fitted Dirichlet strengths
+  strength_scale_grid: [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001, 0.0003, 0.000001]   # multipliers tried on the fitted Dirichlet strengths
   tuning_train_share: 0.65   # inner split of the training days used to choose the multiplier
   shape_min_flow: 20         # route-hours with at least this target flow (pax/day) enter the shape score
   shape_min_segments: 8      # ... and at least this many segments
@@ -101,7 +101,15 @@ validation:                  # §9
     - Hauz Khas
     - Dhaula Kuan
     - Sarai Kale Khan
+  control_names:             # V7: suburban end-points that should NOT rank as busy (negative control for the hubs)
+    - Harewali
+    - Kapashera
+    - Ghevra
+    - Tikri
+  min_hub_percentile: 0.9    # V7: the median hub's busiest stretch must sit above this percentile of 09h pressure
+  v3_min_kappa: 0.8          # V3: weekday level agreement with the reference under frozen cuts (observed: 0.93)
   n_queries: 200             # V8/V9/V10 random queries
+  peak_query_share: 0.7      # share of those queries drawn at peak hours (the rest at midday)
 
 planner:                     # business-logic.md §8
   walk_radius_m: 400         # P-R9
@@ -120,6 +128,6 @@ planner:                     # business-logic.md §8
 
 gates:                       # design/mechanism.md §5
   min_top250_coverage: 0.65  # G2 target (passenger-weighted both-ends match, top-250 routes)
-  min_shift_rank_corr: 0.95  # P-M8 / G6
+  min_shift_level_kappa: 0.8 # G6: stretch-level kappa between base and destination-shifted flows (information on the flow Spearman)
   fare_check_sample: 200000  # tickets per match class for the fare-vs-distance precision proxy
   oracle: tests/oracles/october_anomalies.yaml   # G1 regression oracle (never read by the pipeline)

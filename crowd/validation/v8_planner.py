@@ -28,10 +28,17 @@ def run_v8(planner: Planner, queries: list[Query], day_type: str = "weekday") ->
     return pd.DataFrame(rows)
 
 
+HOUR_BANDS = {"peak am (07-10)": range(7, 11), "midday (11-16)": range(11, 17), "peak pm (17-20)": range(17, 21)}
+
+
 def summarise(df: pd.DataFrame) -> pd.DataFrame:
-    """The V8 headline numbers."""
-    return pd.DataFrame([{
-        "queries": len(df), "answered": float(df["answered"].mean()), "crashes": int((df["error"] != "").sum()),
-        "comfortable card shown": float(df["comfortable_shown"].mean()),
-        "latency p50 (s)": float(np.percentile(df["latency_s"], 50)), "latency p95 (s)": float(np.percentile(df["latency_s"], 95)),
-    }])
+    """The V8 headline numbers, overall and by hour band (the card is shown far more often at midday,
+    where more stretches have no estimate, so a pooled rate would mislead)."""
+    rows = []
+    for name, hours in {"all queries": range(24), **HOUR_BANDS}.items():
+        sub = df[df["hour"].isin(hours)]
+        rows.append({"queries": name, "n": len(sub), "answered": float(sub["answered"].mean()),
+                     "crashes": int((sub["error"] != "").sum()), "comfortable card shown": float(sub["comfortable_shown"].mean()),
+                     "latency p50 (s)": float(np.percentile(sub["latency_s"], 50)),
+                     "latency p95 (s)": float(np.percentile(sub["latency_s"], 95))})
+    return pd.DataFrame(rows)

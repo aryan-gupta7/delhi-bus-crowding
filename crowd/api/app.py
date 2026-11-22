@@ -10,12 +10,12 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from crowd.eligibility import DAY_TYPES
 from crowd.outputs import StopResolver, query
 from crowd.pipeline import Context
 from crowd.planner.service import level_json, load_planner
 
 WEB_DIR = Path(__file__).resolve().parents[2] / "web"
-DAY_TYPES = ("weekday", "weekend")
 
 
 def create_app(ctx: Context) -> FastAPI:

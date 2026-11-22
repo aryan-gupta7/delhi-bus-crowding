@@ -135,7 +135,7 @@ def stage_ensemble(ctx: Context) -> None:
     z = {dt: hour_profile_z(counts, dt) for dt in DAY_TYPES}
     result = run_ensemble(est, dense, ctx.store.read_table("route_seats.parquet"), route_coverage_array(ctx),
                           ctx.store.read_table("route_info.parquet"), z, ctx.cfg,
-                          frozen_cuts=ctx.cache.get("frozen_cuts"))
+                          frozen_cuts=ctx.frozen_cuts)
     ctx.store.write_table("crowding_cells.parquet", result.cells)
     ctx.store.write_array("levels.npy", result.levels)
     ctx.store.write_json("cuts.json", {"cuts": {k: {"central": v["central"], "draws": v["draws"]}
@@ -197,15 +197,16 @@ STAGES: list[Stage] = [
     Stage("model", stage_model, MODEL_INPUTS, ("qhat.parquet", "estimator_fit.json"),
           ("estimator", "flows", "supply", "validation"),
           ("estimator", "tuning", "supply", "flows", "validation/targets", "validation/metrics", "stages")),
-    Stage("ensemble", stage_ensemble, MODEL_INPUTS + ("supply.parquet", "route_seats.parquet", "coverage.parquet"),
+    Stage("ensemble", stage_ensemble, MODEL_INPUTS + ("supply.parquet", "route_seats.parquet", "coverage.parquet", "frozen_cuts"),
           ("crowding_cells.parquet", "levels.npy", "cuts.json"),
           ("estimator", "flows", "supply", "validation", "ensemble", "index", "tiers"),
           ("estimator", "tuning", "supply", "flows", "ensemble", "index", "tiers", "validation/targets",
            "validation/metrics", "stages")),
     Stage("gates", stage_gates, ("tickets.parquet", "ticket_stops.parquet", "day_hour_ok.parquet", "coverage.parquet",
                                  "stop_matches.parquet", "route_info.parquet", "route_seats.parquet", "counts.parquet",
-                                 "trip_stops.parquet", "crowding_cells.parquet", "patterns.parquet", "segments.parquet"),
-          ("gates.json",), ("gates", "flows", "tiers"), ("gates", "stages")),
+                                 "trip_stops.parquet", "crowding_cells.parquet", "patterns.parquet", "segments.parquet",
+                                 "supply.parquet"),
+          ("gates.json",), ("gates", "flows", "tiers"), ("gates", "flows", "index", "supply", "validation/metrics", "stages")),
     Stage("outputs", stage_outputs, ("crowding_cells.parquet", "stretches.parquet", "patterns.parquet", "segments.parquet"),
           ("stretches.geojson", "route_hour_matrix.csv"), (), ("stages",)),
 ]

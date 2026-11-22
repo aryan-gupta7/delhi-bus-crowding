@@ -27,7 +27,7 @@ function wireSearch(inputId, listId) {
     timer = setTimeout(async () => {
       const rows = await getJson("/stops?q=" + encodeURIComponent(input.value)).catch(() => []);
       list.replaceChildren(...rows.map((s) => {
-        const label = `${s.name} (${s.stop_id})`;
+        const label = `${s.name} (${s.stop_id})`;   // used as a plain option value, not as HTML
         stopIds[label] = s.stop_id;
         const o = document.createElement("option"); o.value = label; return o;
       }));
@@ -36,19 +36,20 @@ function wireSearch(inputId, listId) {
 }
 
 // -- cards ---------------------------------------------------------------------------------------
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const levelText = (l) => `${l.glyph} ${l.word}`;
 function legHtml(leg) {
   const hatch = leg.tier === "Low" || leg.tier === "No estimate" ? " hatch" : "";
   const firm = leg.robust_in_range ? "" : ' <span class="pill" title="The level depends on assumptions about who our tickets represent">leans</span>';
-  return `<div class="leg"><strong>Bus ${leg.route}</strong> ${leg.board} ${leg.from} → ${leg.alight} ${leg.to}
+  return `<div class="leg"><strong>Bus ${esc(leg.route)}</strong> ${leg.board} ${esc(leg.from)} → ${leg.alight} ${esc(leg.to)}
     <span class="muted">(${leg.minutes} min)</span><br>
     <span class="pill l${leg.level.code}${hatch}">${levelText(leg.level)}</span>${firm}
-    <span class="muted"> evidence: ${leg.tier}</span></div>`;
+    <span class="muted"> evidence: ${esc(leg.tier)}</span></div>`;
 }
 function cardHtml(c) {
-  const note = c.note ? `<p class="muted">${c.note}</p>` : "";
-  const gamma = c.robustness ? `<p class="muted" title="Robustness value">${c.robustness.note}</p>` : "";
-  return `<article class="card"><h3>${c.title}</h3>
+  const note = c.note ? `<p class="muted">${esc(c.note)}</p>` : "";
+  const gamma = c.robustness ? `<p class="muted" title="Robustness value">${esc(c.robustness.note)}</p>` : "";
+  return `<article class="card"><h3>${esc(c.title)}</h3>
     <div class="big">${c.depart} → ${c.arrive} · ${c.minutes} min</div>
     <div>${c.transfers === 0 ? "Direct" : c.transfers + " transfer"} · <span class="pill l${c.level.code}">${levelText(c.level)}</span></div>
     ${c.legs.map(legHtml).join("")}${note}${gamma}</article>`;
@@ -74,7 +75,7 @@ async function plan(ev) {
     const q = new URLSearchParams({ from_stop: from, to_stop: to, time: $("time").value, day: $("day").value });
     const r = await getJson("/plan?" + q);
     status.textContent = r.message && !Object.keys(r.cards).length ? r.message : "";
-    $("cards").innerHTML = Object.values(r.cards).map(cardHtml).join("") + (r.message && Object.keys(r.cards).length ? `<p><strong>${r.message}</strong></p>` : "");
+    $("cards").innerHTML = Object.values(r.cards).map(cardHtml).join("") + (r.message && Object.keys(r.cards).length ? `<p><strong>${esc(r.message)}</strong></p>` : "");
     $("footnotes").textContent = `${r.usually} ${r.basis} ${r.sample}`;
     drawLegs(r.cards);
   } catch (e) { status.textContent = e.message; status.className = "error"; }
@@ -85,10 +86,10 @@ async function loadHeatmap() {
   const day = $("op-day").value;
   const r = await getJson("/operator/heatmap?day=" + day);
   const head = "<tr><th>Route</th>" + [...Array(24).keys()].map((h) => `<th>${h}</th>`).join("") + "</tr>";
-  const rows = r.routes.map((route) => "<tr><th data-route='" + route + "'>" + route + "</th>" + r.grid[route].map((c) => {
+  const rows = r.routes.map((route) => "<tr><th data-route=\"" + esc(route) + "\">" + esc(route) + "</th>" + r.grid[route].map((c) => {
     if (!c) return "<td></td>";
     const hatch = c.tier === "Low" || c.tier === "No estimate" ? " hatch" : "";
-    return `<td class="c${c.level.code}${hatch}" title="${c.level.word} · evidence ${c.tier}${c.robust_in_range ? "" : " · leans"}">${c.level.code ? c.level.glyph.length : "?"}</td>`;
+    return `<td class="c${c.level.code}${hatch}" title="${esc(c.level.word)} · evidence ${esc(c.tier)}${c.robust_in_range ? "" : " · leans"}">${c.level.code ? c.level.glyph.length : "?"}</td>`;
   }).join("") + "</tr>");
   $("heatmap").innerHTML = "<table>" + head + rows.join("") + "</table>"; $("heatmap").dataset.loaded = "1";
 }

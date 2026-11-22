@@ -9,6 +9,8 @@ import pandas as pd
 
 from crowd.gtfs import Geometry
 
+MINUTES_PER_DAY = 1440
+
 
 @dataclass
 class TripTables:
@@ -39,13 +41,20 @@ class TripTables:
             tables.append(mat[np.argsort(first, kind="stable")])
         return cls(dep=tables)
 
-    def next_trip(self, r: int, stop: int, earliest: float) -> int | None:
-        """Row of the first trip of route ``r`` leaving ``stop`` at or after ``earliest``."""
+    def next_departure(self, r: int, stop: int, earliest: float) -> np.ndarray | None:
+        """Stop times of the first trip of route ``r`` leaving ``stop`` at or after ``earliest``.
+
+        Trips scheduled past 24:00 belong to the previous service day: they are also considered
+        ``1440`` minutes earlier, so a 00:30 query finds a 25:10 trip (as 01:10). The returned times
+        are on the query's own clock.
+        """
         col = self.dep[r][:, stop]
-        ok = col >= earliest
-        if not ok.any():
+        today = np.where(col >= earliest, col, np.inf)
+        yesterday = np.where((col >= MINUTES_PER_DAY) & (col - MINUTES_PER_DAY >= earliest), col - MINUTES_PER_DAY, np.inf)
+        row, shift = (int(np.argmin(today)), 0.0) if today.min() <= yesterday.min() else (int(np.argmin(yesterday)), MINUTES_PER_DAY)
+        if not np.isfinite(min(today.min(), yesterday.min())):
             return None
-        return int(np.argmin(np.where(ok, col, np.inf)))
+        return self.dep[r][row] - shift
 
     def frequency(self, r: int) -> int:
         return int(self.dep[r].shape[0])

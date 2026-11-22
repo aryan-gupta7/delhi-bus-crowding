@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import sys
+from pathlib import Path
 
 from crowd.config import Config
 from crowd.pipeline import Context, run, write_manifest
@@ -20,10 +21,22 @@ def _context(args: argparse.Namespace) -> Context:
 def cmd_run(args: argparse.Namespace) -> int:
     from crowd.stages import STAGES
     ctx = _context(args)
+    if args.frozen_cuts:                           # score against the band cuts of a reference run
+        ctx.frozen_cuts = Store(Path(args.frozen_cuts).parent).read_json(Path(args.frozen_cuts).name)["cuts"]
     timings = run(STAGES, ctx, force=args.force, only=args.stage)
-    manifest = write_manifest(STAGES, ctx, timings, extra={})
+    manifest = write_manifest(STAGES, ctx, timings, extra=_manifest_extra(ctx, args.frozen_cuts))
     print(f"reproducibility_hash {manifest['reproducibility_hash']}")
     return 0
+
+
+def _manifest_extra(ctx: Context, frozen_cuts: str | None) -> dict:
+    """What a reader of run_manifest.json needs without opening other files (all deterministic)."""
+    st = ctx.store
+    optional = lambda name: st.read_json(name) if st.exists(name) else None          # noqa: E731
+    cuts = optional("cuts.json")
+    return {"frozen_cuts_from": frozen_cuts, "ingest": optional("ingest_report.json"),
+            "band_cuts_central": cuts and {k: v["central"] for k, v in cuts["cuts"].items()},
+            "scenario": cuts and cuts["scenario"], "estimator": optional("estimator_fit.json"), "gates": optional("gates.json")}
 
 
 def cmd_gates(args: argparse.Namespace) -> int:
@@ -72,9 +85,10 @@ def main(argv: list[str] | None = None) -> int:
     p_run = sub.add_parser("run", help="run the pipeline S0-S8 (skips up-to-date stages)")
     p_run.add_argument("--force", action="store_true", help="re-run every stage")
     p_run.add_argument("--stage", help="run only this stage")
+    p_run.add_argument("--frozen-cuts", help="path to a reference run's cuts.json: score against its band cuts instead of recomputing them")
     p_run.set_defaults(func=cmd_run)
     p_val = sub.add_parser("validate", help="held-out validation (V1 ...) -> out/validation/report.md")
-    p_val.add_argument("--only", help="comma-separated subset of v1,v7,v8,v9,v10,v3 (default: all)")
+    p_val.add_argument("--only", help="comma-separated subset of v1,v7,v8,v9,v10,v11,v3 (default: all)")
     p_val.set_defaults(func=cmd_validate)
     p_serve = sub.add_parser("serve", help="planner API and web page")
     p_serve.add_argument("--host", default="127.0.0.1")

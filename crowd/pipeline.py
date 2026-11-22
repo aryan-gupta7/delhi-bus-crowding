@@ -46,6 +46,7 @@ class Context:
     cfg: Config
     store: Store
     cache: dict[str, Any] = field(default_factory=dict)
+    frozen_cuts: dict | None = None            # band cuts of a reference run to score against (V3, `--frozen-cuts`)
 
     def memo(self, key: str, factory: Callable[[], Any]) -> Any:
         if key not in self.cache:
@@ -57,6 +58,8 @@ class Context:
 
     def fingerprint(self, name: str) -> str:
         """Cheap, change-sensitive identity of an input (stat-based for raw files)."""
+        if name == "frozen_cuts":
+            return hashlib.sha256(json.dumps(self.frozen_cuts, sort_keys=True, default=str).encode()).hexdigest()
         if name.startswith("raw:"):
             p = self.raw_path(name)
             files = [p] if p.is_file() else sorted(p.glob("*.txt"))
