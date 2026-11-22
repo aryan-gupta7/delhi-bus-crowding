@@ -87,7 +87,8 @@ def run_all(ctx: Context, only: tuple[str, ...] = ITEMS) -> Path:
                               markdown_table(v9["sensitivity"]), "### Robustness value Gamma* (smallest coverage difference that erases the advantage)",
                               markdown_table(v9["gamma_star"]))
         if "v10" in only:
-            v10 = v10_stability.run_v10(ctx, planner, est, inp, train, queries)
+            peak_queries = sample_queries(planner, routes, ctx.cfg.validation.n_queries_v10, seed=3, hours=PEAK_HOURS)
+            v10 = v10_stability.run_v10(ctx, planner, est, inp, train, peak_queries)
             parts += _section("V10: do recommendations made on training days hold on held-out days? (week-to-week stability "
                               "under the same unidentified scale; not a test of correctness)", markdown_table(v10),
                               "Queries not judged: " + ", ".join(f"{k}: {v}" for k, v in v10.attrs["dropped"].items()))

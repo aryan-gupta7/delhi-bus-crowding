@@ -153,6 +153,9 @@ def test_the_leg_level_is_the_highest_level_with_a_quarter_of_the_minutes(planne
     assert scorer._dominant_level([(3, 20.0), (1, 80.0)]) == 1          # 20% of the minutes: ignored
     assert scorer._dominant_level([(3, 30.0), (1, 70.0)]) == 3          # 30%: counts
     assert scorer._dominant_level([(0, 100.0)]) == 0
+    assert scorer._dominant_level([(0, 90.0), (2, 10.0)]) == 2          # unknown minutes do not dilute the known ones
+    thirteen = [(2, 3.0)] * 8 + [(3, 3.0)] * 5                           # many short stretches, none above 25% alone
+    assert scorer._dominant_level(thirteen) == 3                        # but 5 of 13 (38%) are the busiest level
 
 
 def test_a_00_30_query_finds_a_trip_scheduled_after_midnight(planner):

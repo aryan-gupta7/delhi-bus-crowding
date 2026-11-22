@@ -19,7 +19,7 @@ from crowd.index import hour_profile_z
 from crowd.outputs import CrowdingTable
 from crowd.pipeline import Context
 from crowd.planner.cards import margin_minutes, pick_cards
-from crowd.planner.scoring import Scorer
+from crowd.planner.scoring import ScoredOption, Scorer
 from crowd.planner.service import Planner
 from crowd.validation import metrics
 from crowd.validation.queries import Query
@@ -45,9 +45,9 @@ def _heldout_table(table: CrowdingTable, inp: FlowInputs, cuts: np.ndarray) -> C
     return CrowdingTable.load(cells, levels)
 
 
-def _fully_judged(option, held_table: CrowdingTable) -> bool:
-    """Every stretch of the option has an estimate in training and was observed on the held-out days."""
-    return all(s.row is not None and bool(held_table.cells.at[s.row, "observed"]) for leg in option.legs for s in leg.stretches)
+def _fully_judged(scored: ScoredOption, held_table: CrowdingTable) -> bool:
+    """Every stretch of the scored option has an estimate in training and was observed on the held-out days."""
+    return all(s.row is not None and bool(held_table.cells.at[s.row, "observed"]) for leg in scored.legs for s in leg.stretches)
 
 
 def _summarise(df: pd.DataFrame) -> pd.DataFrame:
@@ -91,7 +91,7 @@ def run_v10(ctx: Context, planner: Planner, est_train, inp: FlowInputs, train: n
         if cand is None or picked["advantage"] < margin_minutes(fast.t_adj, cfg):
             dropped["no central advantage"] += 1
             continue
-        if fast.partly_estimated or cand.partly_estimated or not (_fully_judged(fast.option, held_table) and _fully_judged(cand.option, held_table)):
+        if fast.partly_estimated or cand.partly_estimated or not (_fully_judged(fast, held_table) and _fully_judged(cand, held_table)):
             dropped["stretch without estimate or held-out flow"] += 1
             continue
         fast_h, cand_h = held_scorer.score(fast.option, "weekday"), held_scorer.score(cand.option, "weekday")

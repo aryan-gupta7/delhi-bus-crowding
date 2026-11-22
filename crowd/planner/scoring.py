@@ -136,11 +136,21 @@ class Scorer:
                         tier=self._tier_name[min(tiers)], robust=robust)
 
     def _dominant_level(self, items: list[tuple[int, float]]) -> int:
-        """Highest level among items carrying at least ``overall_leg_share`` of the minutes;
-        0 (no estimate) if none of the qualifying items has an estimate."""
-        total = sum(m for _, m in items)
-        known = [lv for lv, m in items if m >= self.share * total and lv != NO_ESTIMATE]
-        return max(known) if known else NO_ESTIMATE
+        """Highest level reached by at least ``overall_leg_share`` of the minutes that have an estimate.
+
+        Going down from the busiest level, minutes at that level or above accumulate; the first level whose
+        cumulative share reaches the threshold is the answer. A brief crush stretch therefore does not set a
+        whole leg's level, and a long crowded run always does, however many stretches it is cut into.
+        0 (no estimate) if no minute has an estimate.
+        """
+        known = [(lv, m) for lv, m in items if lv != NO_ESTIMATE]
+        total = sum(m for _, m in known)
+        if total == 0:
+            return NO_ESTIMATE
+        for level in sorted({lv for lv, _ in known}, reverse=True):
+            if sum(m for lv, m in known if lv >= level) >= self.share * total:
+                return level
+        return NO_ESTIMATE
 
     # -- robustness value -----------------------------------------------------------------------
     def _adjusted(self, scored: ScoredOption, scale: dict[str, float], unknown: float, day_type: str) -> float:
