@@ -21,7 +21,7 @@ from crowd.pipeline import Context
 from crowd.validation import baselines, metrics, targets
 from crowd.validation.splits import odd_even, weekday_split
 
-TIER_LABELS = ["<10 tickets/week", "10-74", ">=75"]
+TIER_LABELS = ["<10", "10-74", ">=75"]
 DT = "weekday"
 
 
@@ -57,7 +57,7 @@ def count_scores(est: Estimator, counts: pd.DataFrame, test_dates: np.ndarray, c
     rows = []
     for t in list(range(len(TIER_LABELS))) + [None]:
         sel = np.ones_like(tier, bool) if t is None else tier == t
-        row = {"tier (training counts)": "all" if t is None else _tier_label(t), "cells x days": int(valid[sel].sum())}
+        row = {"tier (training tickets/week per cell)": "all" if t is None else _tier_label(t), "cells x days": int(valid[sel].sum())}
         for name, arr in scores.items():
             row[name] = float(np.nanmean(arr[sel]))
         rows.append(row)
@@ -119,7 +119,7 @@ def od_scores(est: Estimator, od_train: pd.DataFrame, od_test: pd.DataFrame, cfg
     for t in list(range(len(TIER_LABELS))) + [None]:
         sub = df if t is None else df[df["tier"] == t]
         tickets = sub["tickets"].sum()
-        out.append({"tier (training pairs in route-band)": "all" if t is None else _tier_label(t),
+        out.append({"tier (training matched tickets in route-band)": "all" if t is None else _tier_label(t),
                     "held-out tickets": int(tickets),
                     "model (hour profile shrunk to band, route, length class)": float(sub["model"].sum() / tickets),
                     "raw band profile": float(sub["raw_band"].sum() / tickets),
@@ -216,7 +216,7 @@ def run_v1(ctx: Context) -> dict[str, pd.DataFrame]:
     od_tbl = od_scores(est, od[od["date"].isin(train)], od[od["date"].isin(test)], ctx.cfg)
     flow_tbl = flow_agreement(ctx, est, train, test)
     split = pd.DataFrame({"set": ["train", "test"], "days": [len(train), len(test)],
-                          "first": [train.min(), test.min()], "last": [train.max(), test.max()]})
+                          "first": [str(train.min())[:10], str(test.min())[:10]], "last": [str(train.max())[:10], str(test.max())[:10]]})
     tables = {"split": split, "count_log_score": count_tbl, "interval_calibration": interval_tbl,
               "od_log_score": od_tbl, "flow_agreement": flow_tbl}
     out_dir = store.path("validation")
