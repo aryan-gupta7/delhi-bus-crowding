@@ -62,7 +62,8 @@ class Planner:
                 "period": self.period, "usually": text.usually(self.period), "basis": text.basis(day_type), "sample": text.SAMPLE_NOTE}
         options = self.options(from_stop, to_stop, time_hhmm)
         if not options:
-            return {**base, "cards": {}, "message": text.NO_SERVICE}
+            return {**base, "cards": {}, "message": text.NO_SERVICE, "compared": None, "evidence": None,
+                    "leave_later": {"chip": None, "offsets": []}}
         scored = [self.scorer.score(o, day_type) for o in options]
         picked = pick_cards(scored, self.scorer, day_type, self.cfg)
         cards = {"fastest": self._card("Fastest", picked["fastest"], None)}

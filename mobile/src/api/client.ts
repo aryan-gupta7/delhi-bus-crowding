@@ -1,4 +1,4 @@
-import type { DayType, Example, Plan, StopRef, StretchCollection } from "./types";
+import type { DayType, Example, NearbyStop, Plan, StopRef, StopTuple, StretchCollection } from "./types";
 
 export class ApiError extends Error {
   constructor(message: string, readonly offline: boolean) {
@@ -21,7 +21,10 @@ export function createClient(baseUrl: string) {
     return (await res.json()) as T;
   }
   return {
-    stops: (q: string) => get<StopRef[]>("/stops", { q }),
+    /** Name search; with no text, the alphabetical list (paged). */
+    stops: (q: string, limit = 8, offset = 0) => get<StopRef[]>("/stops", { q, limit, offset }),
+    nearby: (lat: number, lon: number, limit = 5) => get<NearbyStop[]>("/stops/nearby", { lat, lon, limit }),
+    allStops: () => get<StopTuple[]>("/stops/all"),
     examples: () => get<Example[]>("/examples"),
     plan: (from: string, to: string, time: string, day: DayType) =>
       get<Plan>("/plan", { from_stop: from, to_stop: to, time, day }),

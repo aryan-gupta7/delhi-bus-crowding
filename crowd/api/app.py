@@ -69,8 +69,18 @@ def create_app(ctx: Context) -> FastAPI:
         return {"status": "ok", "cells": len(cells)}
 
     @app.get("/stops")
-    def stops(q: str = Query(min_length=2)) -> list[dict]:
-        return planner.stops.search(q)
+    def stops(q: str = "", limit: int = Query(8, ge=1, le=200), offset: int = Query(0, ge=0)) -> list[dict]:
+        """Name search; with no text, the alphabetical stop list (paged by ``limit`` and ``offset``)."""
+        return planner.stops.search(q, limit) if q.strip() else planner.stops.alphabetical(limit, offset)
+
+    @app.get("/stops/nearby")
+    def stops_nearby(lat: float = Query(ge=-90, le=90), lon: float = Query(ge=-180, le=180), limit: int = Query(5, ge=1, le=20)) -> list[dict]:
+        return planner.stops.nearest(lat, lon, limit)
+
+    @app.get("/stops/all")
+    def stops_all() -> list[list]:
+        """Every served stop as [stop_id, name, lat, lon], compact enough to draw on a map."""
+        return [[r["stop_id"], r["name"], round(r["lat"], 5), round(r["lon"], 5)] for r in planner.stops.every_stop()]
 
     @app.get("/plan")
     def plan(from_stop: str, to_stop: str, time: str = "09:00", day: str = "weekday") -> dict:

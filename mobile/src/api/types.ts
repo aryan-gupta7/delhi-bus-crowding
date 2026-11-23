@@ -29,11 +29,14 @@ export type Plan = {
   cards: { fastest?: Card; comfortable?: Card };
   message: string | null;
   compared: Compared | null;
-  leave_later: { chip: LaterChip | null; offsets: LaterRow[] };
-  evidence: { route_switch_ratio: number };
+  leave_later?: { chip: LaterChip | null; offsets: LaterRow[] };   // absent only in old cached results
+  evidence: { route_switch_ratio: number } | null;
 };
 
 export type StopRef = { stop_id: string; name: string; lat: number; lon: number };
+export type NearbyStop = StopRef & { distance_m: number };
+/** [stop_id, name, lat, lon] as sent by /stops/all */
+export type StopTuple = [string, string, number, number];
 export type Example = { from: StopRef; to: StopRef; time: string };
 
 export type StretchFeature = {

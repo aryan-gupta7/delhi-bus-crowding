@@ -22,7 +22,7 @@ export function ResultsScreen({ view, onBack, onDetails, onAbout }: Props) {
   const { plan } = view;
   const cards = plan.cards;
   const count = Object.keys(cards).length;
-  const chip = plan.leave_later.chip;
+  const chip = plan.leave_later?.chip ?? null;
   const rough = plan.query.day_type === "weekend" ? ` ${t("roughWeekend")}` : "";
   const footer = `${t("usually", { period: plan.period })} ${t(plan.query.day_type === "weekend" ? "basisWeekend" : "basisWeekday")}${rough} ${t("sample")}`;
 
@@ -42,7 +42,7 @@ export function ResultsScreen({ view, onBack, onDetails, onAbout }: Props) {
           <>
             <Card variant="dashed" style={{ gap: 6 }}>
               <Text size={24} display accessibilityRole="header">{t("noCalmer")}</Text>
-              <Text tone="sec" size={14}>{t("noCalmerWhy", { r: plan.evidence.route_switch_ratio.toFixed(1) })}</Text>
+              <Text tone="sec" size={14}>{t("noCalmerWhy", { r: (plan.evidence?.route_switch_ratio ?? 1.6).toFixed(1) })}</Text>
               <Button kind="link" label={t("whyCant")} onPress={onAbout} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} />
             </Card>
             {cards.fastest ? <OptionCard card={cards.fastest} picked={false} onDetails={() => onDetails("fastest")} /> : null}

@@ -22,6 +22,7 @@ async function api(path, params = {}) {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
   return res.json();
 }
+const stopLabel = (s) => { const label = `${s.name} (${s.stop_id})`; state.stopIds[label] = s.stop_id; return label; };
 const pips = (n) => '<i class="p"></i>'.repeat(n);
 function levelPill(code, tier = "High", size = "") {
   if (code === 0) return `<span class="lv l0 ${size}">? ${esc(t("L0"))}</span>`;
@@ -52,23 +53,20 @@ const levelLegend = () => [1, 2, 3, 0].map((c) => levelPill(c, "High", "sm")).jo
 function renderLegend() { $("legend").innerHTML = levelLegend(); $("op-legend").innerHTML = levelLegend(); $("maplabel").textContent = t("schematic"); }
 
 // ---- stop search ---------------------------------------------------------------------------------
+const optionList = (rows) => rows.map((s) => { const option = document.createElement("option"); option.value = stopLabel(s); return option; });
 function wireSearch(inputId, listId) {
   const input = $(inputId), list = $(listId);
   let timer;
+  api("/stops", { limit: 60 }).then((rows) => list.replaceChildren(...optionList(rows))).catch(() => {});   // the A to Z list, before anything is typed
   input.addEventListener("input", () => {
     clearTimeout(timer);
     if (input.value.length < 2) return;
     timer = setTimeout(async () => {
-      const rows = await api("/stops", { q: input.value }).catch(() => []);
-      list.replaceChildren(...rows.map((s) => {
-        const label = `${s.name} (${s.stop_id})`;
-        state.stopIds[label] = s.stop_id;
-        const option = document.createElement("option"); option.value = label; return option;
-      }));
+      const rows = await api("/stops", { q: input.value, limit: 12 }).catch(() => []);
+      list.replaceChildren(...optionList(rows));
     }, 200);
   });
 }
-const stopLabel = (s) => { const label = `${s.name} (${s.stop_id})`; state.stopIds[label] = s.stop_id; return label; };
 
 // ---- planner results -----------------------------------------------------------------------------
 function robustText(card) {
@@ -370,6 +368,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("seg-day").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { state.planDay = b.dataset.day; setSeg($("seg-day"), "day", state.planDay); } });
   $("seg-opday").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { state.opDay = b.dataset.day; setSeg($("seg-opday"), "day", state.opDay); state.cell = null; loadOperator().catch(() => {}); } });
   $("op-hour").addEventListener("change", (e) => { state.opHour = Number(e.target.value); if (state.cell) selectCell(state.cell.route, state.opHour); });
+  $("time").value = new Date().toTimeString().slice(0, 5);          // leave "now" unless the rider picks a time
+  state.planDay = [0, 6].includes(new Date().getDay()) ? "weekend" : "weekday"; setSeg($("seg-day"), "day", state.planDay);
   $("plan-form").addEventListener("submit", submitPlan);
   $("swap").addEventListener("click", () => { const f = $("from").value; $("from").value = $("to").value; $("to").value = f; });
   $("open-info").addEventListener("click", () => $("info").showModal());

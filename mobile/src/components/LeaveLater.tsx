@@ -8,7 +8,7 @@ import { TOUCH } from "../theme/tokens";
 import { LevelPill } from "./LevelPill";
 import { Text } from "./Text";
 
-type Props = { later: Plan["leave_later"]; initialOffset?: number };
+type Props = { later: NonNullable<Plan["leave_later"]>; initialOffset?: number };
 const HALF_TICK = TOUCH / 2;
 
 /** Stepped slider: Now, +10 ... +60. The fill and the bead border are the accent; the selected tick label and the

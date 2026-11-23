@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { ApiError } from "../api/client";
 import type { DayType, Example, StopRef } from "../api/types";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Logo } from "../components/Logo";
+import { MapPicker } from "../components/MapPicker";
 import { Segmented } from "../components/Segmented";
 import { StopField } from "../components/StopField";
+import { TimeField, nowValue, type TimeValue } from "../components/TimeField";
 import { Text } from "../components/Text";
 import type { Lang } from "../i18n/i18n";
 import { useApp } from "../state/AppState";
 import { useTheme } from "../theme/ThemeProvider";
-import { font, radius, TOUCH } from "../theme/tokens";
+import { radius, TOUCH } from "../theme/tokens";
 import type { ResultsView } from "./types";
 
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const defaultDay = (): DayType => ([0, 6].includes(new Date().getDay()) ? "weekend" : "weekday");   // today, by the phone's calendar
 
 const Icon = ({ d, color, size = 18 }: { d: string; color: string; size?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24"><Path d={d} stroke={color} strokeWidth={1.75} fill="none" strokeLinecap="round" strokeLinejoin="round" /></Svg>
@@ -26,8 +28,10 @@ export function PlanScreen({ onResults }: { onResults: (v: ResultsView) => void 
   const { palette } = useTheme();
   const [from, setFrom] = useState<StopRef | null>(null);
   const [to, setTo] = useState<StopRef | null>(null);
-  const [time, setTime] = useState("08:57");
-  const [day, setDay] = useState<DayType>("weekday");
+  const [when, setWhen] = useState<TimeValue>(nowValue);
+  const [day, setDay] = useState<DayType>(defaultDay);
+  const [picking, setPicking] = useState(false);   // a stop list is open: hide the swap button so it does not float over it
+  const [mapFor, setMapFor] = useState<"from" | "to" | null>(null);
   const [examples, setExamples] = useState<Example[]>([]);
   const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,12 +62,12 @@ export function PlanScreen({ onResults }: { onResults: (v: ResultsView) => void 
 
   function submit() {
     if (!from || !to) { setStatus({ text: t("pickBoth"), error: true }); return; }
-    if (!TIME_RE.test(time)) { setStatus({ text: t("timeInvalid"), error: true }); return; }
-    void search(from, to, time, day);
+    const at = when.isNow ? nowValue().time : when.time;   // "Now" is read again when you press the button
+    void search(from, to, at, day);
   }
 
   function pickExample(e: Example) {
-    setFrom(e.from); setTo(e.to); setTime(e.time); setDay("weekday");
+    setFrom(e.from); setTo(e.to); setWhen({ time: e.time, isNow: false }); setDay("weekday");
     void search(e.from, e.to, e.time, "weekday");
   }
 
@@ -80,21 +84,17 @@ export function PlanScreen({ onResults }: { onResults: (v: ResultsView) => void 
       <Text tone="sec" style={{ marginTop: 8 }}>{t("heroSub")}</Text>
 
       <Card style={{ padding: 0, marginTop: 24 }}>
-        <StopField label={t("from")} placeholder={t("fromPh")} value={from} onChange={setFrom} />
+        <StopField label={t("from")} placeholder={t("fromPh")} value={from} onChange={setFrom} onPickOnMap={() => setMapFor("from")} onOpenChange={setPicking} />
         <View style={{ height: 1, backgroundColor: palette.border, marginHorizontal: 16 }} />
-        <StopField label={t("to")} placeholder={t("toPh")} value={to} onChange={setTo} />
-        <Pressable accessibilityRole="button" accessibilityLabel={t("swap")} onPress={() => { setFrom(to); setTo(from); }}
+        <StopField label={t("to")} placeholder={t("toPh")} value={to} onChange={setTo} onPickOnMap={() => setMapFor("to")} onOpenChange={setPicking} />
+        {!picking ? <Pressable accessibilityRole="button" accessibilityLabel={t("swap")} onPress={() => { setFrom(to); setTo(from); }}
           style={{ position: "absolute", right: 12, top: "50%", marginTop: -22, width: TOUCH, height: TOUCH, borderRadius: radius.control, alignItems: "center", justifyContent: "center",
             backgroundColor: palette.surf, borderWidth: 1, borderColor: palette.border }}>
           <Icon color={palette.ink} d="M7 4v16M7 20l-4-4M7 20l4-4M17 20V4M17 4l-4 4M17 4l4 4" />
-        </Pressable>
+        </Pressable> : null}
       </Card>
 
-      <Card inner style={{ marginTop: 12, minHeight: 54, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 0 }}>
-        <Text tone="mut" size={13}>{t("at")}</Text>
-        <TextInput value={time} onChangeText={setTime} keyboardType="numbers-and-punctuation" maxLength={5} accessibilityLabel={t("at")}
-          style={{ minHeight: TOUCH, minWidth: 80, textAlign: "right", color: palette.ink, fontFamily: font.mono, fontSize: 18 }} />
-      </Card>
+      <View style={{ marginTop: 12 }}><TimeField value={when} onChange={setWhen} /></View>
       <View style={{ marginTop: 12 }}>
         <Segmented<DayType> options={[{ key: "weekday", label: t("weekday") }, { key: "weekend", label: t("weekend") }]} value={day} onChange={setDay} />
       </View>
@@ -133,6 +133,7 @@ export function PlanScreen({ onResults }: { onResults: (v: ResultsView) => void 
           style={{ alignSelf: "flex-start", paddingHorizontal: 0, marginTop: 8 }} />
       ) : null}
       <Text tone="mut" size={12} style={{ textAlign: "center", marginTop: 16 }}>{t("sample")}</Text>
+      <MapPicker visible={mapFor !== null} focus={mapFor === "to" ? from : to} onClose={() => setMapFor(null)} onSelect={(s) => (mapFor === "from" ? setFrom(s) : setTo(s))} />
     </ScrollView>
   );
 }

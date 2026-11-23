@@ -6,10 +6,23 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
-    "android": { "package": "dev.hackathon.delhibuscrowding", "usesCleartextTraffic": true },
-    "ios": { "bundleIdentifier": "dev.hackathon.delhibuscrowding" },
-    "web": { "bundler": "metro" },
-    "plugins": ["expo-font"],
-    "extra": { "apiBaseUrl": "http://10.0.2.2:8000" }
+    "android": {
+      "package": "dev.hackathon.delhibuscrowding",
+      "usesCleartextTraffic": true
+    },
+    "ios": {
+      "bundleIdentifier": "dev.hackathon.delhibuscrowding"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      ["expo-location", { "locationWhenInUsePermission": "Used once to find the bus stop nearest to you. Your location is not stored." }]
+    ],
+    "extra": {
+      "apiBaseUrl": "http://10.0.2.2:8000"
+    }
   }
 }

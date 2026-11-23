@@ -45,3 +45,22 @@ def test_operator_endpoints(client):
 def test_unknown_inputs_are_rejected_cleanly(client):
     assert client.get("/plan", params={"from_stop": "nope", "to_stop": "3"}).status_code == 404
     assert client.get("/plan", params={"from_stop": "0", "to_stop": "3", "day": "friday"}).status_code == 422
+
+
+def test_stop_list_before_typing_nearby_and_all(client):
+    page = client.get("/stops", params={"limit": 3}).json()
+    names = [s["name"] for s in page]
+    assert len(page) == 3 and names == sorted(names, key=str.lower)
+    assert client.get("/stops", params={"limit": 3, "offset": 3}).json()[0]["stop_id"] not in {s["stop_id"] for s in page}
+    here = page[0]
+    near = client.get("/stops/nearby", params={"lat": here["lat"], "lon": here["lon"], "limit": 2}).json()
+    assert near[0]["stop_id"] == here["stop_id"] and near[0]["distance_m"] == 0
+    every = client.get("/stops/all").json()
+    assert every and len(every[0]) == 4 and len({row[1] for row in every}) == len(every)
+
+
+def test_a_trip_with_no_service_still_has_the_full_plan_shape(client):
+    """The app crashed on 'leave_later of undefined' when a trip had no service (here: against the only direction served)."""
+    plan = client.get("/plan", params={"from_stop": "3", "to_stop": "0", "time": "08:00"}).json()
+    assert plan["cards"] == {} and plan["message"]
+    assert plan["leave_later"] == {"chip": None, "offsets": []} and plan["compared"] is None

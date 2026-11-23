@@ -29,6 +29,7 @@ class StopIndex:
         self._xy = np.column_stack([self.stops["lat"] * KM_PER_DEGREE,
                                     self.stops["lon"] * KM_PER_DEGREE * np.cos(np.radians(lat0))])
         self._tree = cKDTree(self._xy)
+        self._served: list[int] | None = None
         self.walk_radius_km = cfg.planner.walk_radius_m / 1000
         self.speed_mpm = cfg.planner.walk_speed_mps * 60
         self.detour = cfg.planner.walk_detour
@@ -59,6 +60,39 @@ class StopIndex:
             self._add(found, i)
             if len(found) >= limit:
                 break
+        return list(found.values())
+
+    def _served_once(self) -> list[int]:
+        """One stop per distinct name among the stops some route serves, in alphabetical order of the name."""
+        if self._served is None:
+            first: dict[str, int] = {}
+            for i, name in enumerate(self.norm_names):
+                if self.stops.at[i, "stop_id"] in self.routes_at:
+                    first.setdefault(name, i)
+            self._served = sorted(first.values(), key=lambda i: (self.norm_names[i], i))
+        return self._served
+
+    def alphabetical(self, limit: int, offset: int = 0) -> list[dict]:
+        """A page of the stop list in alphabetical order, for choosing a stop before typing anything."""
+        return [self._row(i) for i in self._served_once()[offset:offset + limit]]
+
+    def every_stop(self) -> list[dict]:
+        """All distinct served stops (for a map of every stand)."""
+        return [self._row(i) for i in self._served_once()]
+
+    def nearest(self, lat: float, lon: float, limit: int = 5) -> list[dict]:
+        """The closest served stops to a point, one per name, each with its straight-line distance in metres."""
+        lat0 = float(self.stops["lat"].mean())
+        point = np.array([lat * KM_PER_DEGREE, lon * KM_PER_DEGREE * np.cos(np.radians(lat0))])
+        found: dict[str, dict] = {}
+        k = min(len(self.stops), limit * 6)
+        dist, idx = self._tree.query(point, k=k)
+        for d, i in zip(np.atleast_1d(dist), np.atleast_1d(idx)):
+            name = self.norm_names[int(i)]
+            if name not in found and self.stops.at[int(i), "stop_id"] in self.routes_at:
+                found[name] = {**self._row(int(i)), "distance_m": int(round(float(d) * 1000))}
+                if len(found) >= limit:
+                    break
         return list(found.values())
 
     def _add(self, found: dict[str, dict], i: int) -> None:

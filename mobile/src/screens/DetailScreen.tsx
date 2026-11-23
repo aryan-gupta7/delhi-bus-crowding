@@ -42,7 +42,7 @@ export function DetailScreen({ view, cardKey, initialOffset = 0, onBack }: Props
             </Card>
           );
         })}
-        <Card><LeaveLater later={view.plan.leave_later} initialOffset={initialOffset} /></Card>
+        <Card>{view.plan.leave_later ? <LeaveLater later={view.plan.leave_later} initialOffset={initialOffset} /> : null}</Card>
         <Text tone="mut" size={12}>{t("usually", { period: view.plan.period })}</Text>
       </ScrollView>
     </View>
