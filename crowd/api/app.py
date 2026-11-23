@@ -17,6 +17,7 @@ from crowd.pipeline import Context
 from crowd.planner.service import level_json, load_planner
 
 WEB_DIR = Path(__file__).resolve().parents[2] / "web"
+CLOCK = r"^([01]\d|2[0-3]):[0-5]\d$"     # a departure time as HH:MM, 00:00 to 23:59
 
 
 def create_app(ctx: Context) -> FastAPI:
@@ -83,13 +84,13 @@ def create_app(ctx: Context) -> FastAPI:
         return [[r["stop_id"], r["name"], round(r["lat"], 5), round(r["lon"], 5)] for r in planner.stops.every_stop()]
 
     @app.get("/plan")
-    def plan(from_stop: str, to_stop: str, time: str = "09:00", day: str = "weekday") -> dict:
+    def plan(from_stop: str, to_stop: str, time: str = Query("09:00", pattern=CLOCK), day: str = "weekday") -> dict:
         if from_stop not in planner.stops.pos_of or to_stop not in planner.stops.pos_of:
             raise HTTPException(404, "unknown stop id")
         return planner.plan(from_stop, to_stop, time, check_day(day), with_later=True)
 
     @app.get("/crowding")
-    def crowding(route: str, from_stop: str, to_stop: str, time: str = "09:00", day: str = "weekday") -> dict:
+    def crowding(route: str, from_stop: str, to_stop: str, time: str = Query("09:00", pattern=CLOCK), day: str = "weekday") -> dict:
         result = query(table, geo, resolver, route, from_stop, to_stop, time, check_day(day))
         if "error" in result:
             raise HTTPException(404, result["error"])

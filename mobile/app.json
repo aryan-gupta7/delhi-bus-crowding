@@ -8,21 +8,32 @@
     "newArchEnabled": false,
     "android": {
       "package": "dev.hackathon.delhibuscrowding",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#121316"
+      }
     },
     "ios": {
       "bundleIdentifier": "dev.hackathon.delhibuscrowding"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
       "@react-native-community/datetimepicker",
-      ["expo-location", { "locationWhenInUsePermission": "Used once to find the bus stop nearest to you. Your location is not stored." }]
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Used once to find the bus stop nearest to you. Your location is not stored."
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "http://10.0.2.2:8000"
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }

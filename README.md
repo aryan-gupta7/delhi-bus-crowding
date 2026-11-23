@@ -22,8 +22,8 @@ Requires [uv](https://docs.astral.sh/uv/) (it installs the pinned Python 3.12 an
 make setup       # uv sync
 make all         # pipeline S0-S8, ~1.5 min on 16 cores; writes out/ and out/run_manifest.json
 make gates       # gates G1-G7 (non-zero exit on a blocking failure)
-make test        # 40+ fast unit and mini end-to-end tests
-make serve       # planner + operator web view at http://127.0.0.1:8000 (light/dark, English/Hindi)
+make test        # about 60 fast unit, API and mini end-to-end tests
+make serve       # planner + operator web view at http://127.0.0.1:8000 (light/dark, English/Hindi); local use, no login
 make validate    # held-out validation -> out/validation/report.md (about 10 minutes; see below)
 ```
 
@@ -50,7 +50,7 @@ Stages whose inputs, config sections and source files are unchanged are skipped.
 | `gates.json`, `validation/report.md` | Gate results and the held-out validation report (a committed copy, aggregated, is `docs/validation_report.md`) |
 | `estimator_fit.json` | Fitted α, φ, Dirichlet strengths and the shrinkage multiplier chosen on the inner split |
 
-Web and phone: the web page has the planner and the operator view; the phone app (`mobile/`) is the rider planner only. Both call the API below and use the same design tokens and wording (a test fails if they drift). The Hindi text is a first pass.
+Web and phone: the web page is the demo of record and has the planner and the operator view; the phone app (`mobile/`, optional, run through Expo Go) is the rider planner only. The API is read-only with no login: serve it only on a network you trust. Both call the API below and use the same design tokens and wording (a test fails if they drift). The Hindi text is a first pass.
 
 Command line: `python -m crowd query --route 8UP --from "Ali Village" --to "Mahamaya Flyover West" --time 09:30`
 returns the crowding along one bus ride. The HTTP API (`/stops`, `/plan`, `/crowding`, `/operator/*`,
@@ -90,8 +90,13 @@ design/ docs/ reviews/   design docs, short docs, independent reviews of the des
   survives the scenario ensemble, and says how much capture error it can absorb (Γ\*). The ensemble is a
   sensitivity analysis over an assumed family (θ, ε), **not a posterior probability**.
 * Seat counts per bus (39 AC / 35 non-AC) are an assumption: the tickets carry no bus length. Gate G3 stays open.
-* The planner uses the static timetable: travel times are scheduled, crowding is "usually", never live.
+* The planner uses the static timetable: travel times are scheduled, crowding is "usually", never live. The Delhi Transport Stack portal lists an open GTFS-RT feed of bus positions; it could add observed supply and arrival times but carries no occupancy, and it was not used.
 * About 12% of ticket stop-name weight (and 20% of passengers have at least one end unmatched) remains unmatched, concentrated at hubs, so pinch points are biased away from hubs.
 * Weekend/holiday results are rougher (one all-days GTFS service; evidence tier capped at Low).
 * Validation checks the estimator of the sampled process on held-out days. It cannot show crowding truth.
   See `out/validation/report.md` for what was measured, including where the model does **not** beat a baseline.
+
+## Licence and data
+
+Code: MIT (see [LICENSE](LICENSE)). The raw ticket file and the GTFS feed are not in the repository and are not redistributed;
+the outputs the planner serves are aggregated by route, stretch and hour.

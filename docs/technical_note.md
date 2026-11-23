@@ -73,7 +73,9 @@ routes with few tickets (the evidence tier shows this).
   patterns (V7) hold, the hub check is weak. A rerun on two time slices with frozen thresholds (V3) agrees at κ 0.93–0.94 and a
   fresh-directory rerun reproduces the reference hash. Gates G1, G2 (81.8%), G2b, G5 pass; G3 stays open. **G6 was changed after
   its first version failed** (segment-flow Spearman 0.91 under a −2 stop shift against an uncalibrated 0.95 target) to the
-  stretch-level agreement a commuter sees (κ 0.94–0.97); both are reported.
+  stretch-level agreement a commuter sees (κ 0.89–0.97; the lowest, 0.89, is for a 2-stop upstream shift); both are reported.
+
+**Live data.** The Delhi Transport Stack portal lists an open GTFS-RT feed of bus positions (cluster buses; DTC GPS announced). It could replace scheduled supply with observed supply and add real arrival times. It was not used: it carries no occupancy, and there was no time to validate it. Crowding levels stay "usually, October data".
 
 **What validation cannot show:** crowding truth, absolute loads, cross-route or cross-hour scale, true alighting, or seat
 availability. It checks the estimator of the *sampled* process on days it did not see.

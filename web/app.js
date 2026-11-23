@@ -56,13 +56,15 @@ function renderLegend() { $("legend").innerHTML = levelLegend(); $("op-legend").
 const optionList = (rows) => rows.map((s) => { const option = document.createElement("option"); option.value = stopLabel(s); return option; });
 function wireSearch(inputId, listId) {
   const input = $(inputId), list = $(listId);
-  let timer;
+  let timer, latest = 0;
   api("/stops", { limit: 60 }).then((rows) => list.replaceChildren(...optionList(rows))).catch(() => {});   // the A to Z list, before anything is typed
   input.addEventListener("input", () => {
     clearTimeout(timer);
     if (input.value.length < 2) return;
+    const asked = ++latest;
     timer = setTimeout(async () => {
       const rows = await api("/stops", { q: input.value, limit: 12 }).catch(() => []);
+      if (asked !== latest) return;          // a newer keystroke has its own answer coming
       list.replaceChildren(...optionList(rows));
     }, 200);
   });

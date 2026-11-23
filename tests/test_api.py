@@ -64,3 +64,46 @@ def test_a_trip_with_no_service_still_has_the_full_plan_shape(client):
     plan = client.get("/plan", params={"from_stop": "3", "to_stop": "0", "time": "08:00"}).json()
     assert plan["cards"] == {} and plan["message"]
     assert plan["leave_later"] == {"chip": None, "offsets": []} and plan["compared"] is None
+
+
+@pytest.mark.parametrize("bad", ["25:99", "9:00", "24:00", "08:60", "noon"])
+def test_a_departure_time_must_be_a_clock_time(client, bad):
+    assert client.get("/plan", params={"from_stop": "0", "to_stop": "3", "time": bad}).status_code == 422
+    assert client.get("/plan", params={"from_stop": "0", "to_stop": "3", "time": "23:59"}).status_code == 200
+
+
+def _top_level_keys(body: str) -> set[str]:
+    """Property names of a TypeScript object type body, ignoring nested object types and array element types."""
+    keys, depth, token = set(), 0, ""
+    for ch in body:
+        if ch in "{[(<":
+            depth += 1
+        elif ch in "}])>":
+            depth -= 1
+        elif depth == 0 and ch == ":" and token.strip():
+            keys.add(token.strip().rstrip("?"))
+            token = ""
+        elif depth == 0 and ch in ";,\n":
+            token = ""
+        elif depth == 0:
+            token += ch
+    return keys
+
+
+def test_plan_json_has_every_key_the_phone_app_reads(client):
+    """mobile/src/api/types.ts mirrors these shapes; the app crashed once on a key that was missing."""
+    import re
+    from pathlib import Path
+    types = (Path(__file__).resolve().parents[1] / "mobile/src/api/types.ts").read_text()
+    chunks = [c for c in types.split("export type ")[1:] if " = {" in c]
+    declared = {c.split(" =")[0]: _top_level_keys(c[c.index("{") + 1:c.rindex("}")]) for c in chunks}
+    optional = {"Plan": {"leave_later"}, "Card": {"robustness"}}
+    for params in ({"from_stop": "0", "to_stop": "3"}, {"from_stop": "3", "to_stop": "0"}):    # served, and no service
+        plan = client.get("/plan", params={**params, "time": "08:00"}).json()
+        assert declared["Plan"] - optional["Plan"] <= plan.keys() and "leave_later" in plan
+        for card in plan["cards"].values():
+            assert declared["Card"] - optional["Card"] <= card.keys()
+            for leg in card["legs"]:
+                assert declared["Leg"] <= leg.keys()
+                for stretch in leg["stretches"]:
+                    assert declared["Stretch"] <= stretch.keys()

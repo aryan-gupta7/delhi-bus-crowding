@@ -17,7 +17,7 @@ const APP: Record<Lang, Table> = {
     locationFailed: "Could not get your location. Pick a stop from the list.", nearestHint: "Nearest stop to you, {d} away", nearestFar: "You are {d} from the nearest Delhi bus stop. Choose a stop from the list.",
     selectStop: "Select this stop", mapPickTitle: "Choose a stop on the map", mapPickHint: "Tap a dot to see the stop.", mapLoading: "Loading stops…",
     timeNow: "Now", timeIn30: "In 30 min", timeIn60: "In 1 hour", pickTime: "Pick time", loadMore: "Show more stops",
-    noMatch: "No matching stop.", close: "Close",
+    noMatch: "No matching stop.", serverDown: "Cannot reach the planner server. Check the phone is on the same Wi-Fi (or the USB cable) and the Server address under About.", close: "Close",
   },
   hi: {
     tabPlan: "यात्रा", tabMap: "नक्शा", tabAbout: "जानकारी", back: "वापस", lastResult: "पिछला नतीजा", offlineCached: "कनेक्शन नहीं है। आपका पिछला नतीजा दिख रहा है।",
@@ -31,7 +31,7 @@ const APP: Record<Lang, Table> = {
     locationFailed: "आपकी लोकेशन नहीं मिली। सूची से स्टॉप चुनें।", nearestHint: "आपके सबसे पास का स्टॉप, {d} दूर", nearestFar: "आप दिल्ली के सबसे पास के बस स्टॉप से {d} दूर हैं। सूची से स्टॉप चुनें।",
     selectStop: "यह स्टॉप चुनें", mapPickTitle: "नक्शे पर स्टॉप चुनें", mapPickHint: "स्टॉप देखने के लिए बिंदु पर दबाएँ।", mapLoading: "स्टॉप लोड हो रहे हैं…",
     timeNow: "अभी", timeIn30: "30 मिनट बाद", timeIn60: "1 घंटे बाद", pickTime: "समय चुनें", loadMore: "और स्टॉप दिखाएँ",
-    noMatch: "कोई स्टॉप नहीं मिला।", close: "बंद करें",
+    noMatch: "कोई स्टॉप नहीं मिला।", serverDown: "प्लानर सर्वर तक नहीं पहुँच पा रहे। फ़ोन उसी वाई-फ़ाई (या USB केबल) पर है और जानकारी में सर्वर का पता सही है, यह देखें।", close: "बंद करें",
   },
 };
 

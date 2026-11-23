@@ -38,8 +38,9 @@ export function StopField({ label, placeholder, value, onChange, onPickOnMap, on
   const query = value ? "" : text.trim();
   useEffect(() => {
     if (!open || query.length >= 2 || alpha.length || !more) return;
-    client.stops("", PAGE, 0).then((rows) => { setAlpha(rows); setMore(rows.length === PAGE); }).catch(() => undefined);
-  }, [open, query, alpha.length, more, client]);
+    client.stops("", PAGE, 0).then((rows) => { setAlpha(rows); setMore(rows.length === PAGE); setHint(null); })
+      .catch(() => setHint({ text: t("serverDown"), error: true }));
+  }, [open, query, alpha.length, more, client, t]);
 
   function onType(next: string) {
     setText(next); setOpen(true);

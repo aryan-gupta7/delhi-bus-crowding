@@ -7,7 +7,7 @@ const STRINGS = {
     appTitle: "Delhi bus crowding", viewPlan: "Plan a trip", viewOperator: "Operator view", howTo: "How to read this",
     themeAuto: "Auto", themeLight: "Light", themeDark: "Dark", theme: "Theme", language: "Language", view: "View",
     heroTitle: "Where to, and when?", heroSub: "See where on a bus ride people are usually most crowded.",
-    from: "From", to: "To", at: "Leave at", weekday: "Weekday", weekend: "Weekend or holiday", dayType: "Day type",
+    from: "From", to: "To", at: "Leave at", weekday: "Weekday", weekend: "Weekend or holiday", 
     show: "Show options", noSignup: "No sign-up needed.", hourWord: "hour", fromTo: "{from} to {to}", fromPh: "Start typing a stop name", toPh: "Start typing a stop name", swap: "Swap from and to",
     tryPeak: "Try a peak trip", optionsFor: "{n} options for {day} {time}", day_weekday: "weekday", day_weekend: "weekend",
     fastest: "Fastest", comfortable: "More comfortable", min: "min", direct: "Direct", transfer: "{n} transfer", transfers: "{n} transfers",
@@ -39,13 +39,13 @@ const STRINGS = {
     footOp: "{period} tickets, about 2.6% of riders", close: "Close", aboutTitle: "How to read this", aboutLevels: "Levels are relative: they compare a stretch with other bus journeys, not with a fixed number of seats.",
     aboutEvidence: "Evidence: solid is high, ringed is medium, hatched is low. Dashed means we have no estimate.", aboutLeans: "leans means the level is not firm across our assumptions.",
     aboutNot: "We never say seats are available, and nothing here is live. Estimates are hourly and historical.", aboutHindi: "The Hindi text is a first pass and is being reviewed.",
-    loading: "Loading…", noRows: "Nothing to show.", stopsA11y: "Suggested stops"
+    noRows: "Nothing to show.", 
   },
   hi: {
     appTitle: "दिल्ली बस भीड़", viewPlan: "यात्रा की योजना", viewOperator: "संचालक दृश्य", howTo: "इसे कैसे पढ़ें",
     themeAuto: "स्वतः", themeLight: "हल्का", themeDark: "गहरा", theme: "थीम", language: "भाषा", view: "दृश्य",
     heroTitle: "कहाँ जाना है, और कब?", heroSub: "देखें कि बस यात्रा में लोग आमतौर पर कहाँ सबसे ज़्यादा भीड़ में होते हैं।",
-    from: "से", to: "तक", at: "प्रस्थान", weekday: "कार्यदिवस", weekend: "सप्ताहांत या छुट्टी", dayType: "दिन का प्रकार",
+    from: "से", to: "तक", at: "प्रस्थान", weekday: "कार्यदिवस", weekend: "सप्ताहांत या छुट्टी", 
     show: "विकल्प दिखाएँ", noSignup: "साइन-अप की ज़रूरत नहीं।", hourWord: "का घंटा", fromTo: "{from} से {to} तक", fromPh: "स्टॉप का नाम लिखें", toPh: "स्टॉप का नाम लिखें", swap: "से और तक बदलें",
     tryPeak: "व्यस्त समय की यात्रा आज़माएँ", optionsFor: "{day} {time} के लिए {n} विकल्प", day_weekday: "कार्यदिवस", day_weekend: "सप्ताहांत",
     fastest: "सबसे तेज़", comfortable: "अधिक आरामदायक", min: "मिनट", direct: "सीधी", transfer: "{n} बदलाव", transfers: "{n} बदलाव",
@@ -77,7 +77,7 @@ const STRINGS = {
     footOp: "{period} के टिकट, लगभग 2.6% यात्री", close: "बंद करें", aboutTitle: "इसे कैसे पढ़ें", aboutLevels: "स्तर सापेक्ष हैं: ये एक हिस्से की तुलना दूसरी बस यात्राओं से करते हैं, सीटों की तय संख्या से नहीं।",
     aboutEvidence: "प्रमाण: ठोस का मतलब उच्च, घेरे का मध्यम, धारीदार का कम। बिंदीदार का मतलब हमारे पास अनुमान नहीं है।", aboutLeans: "झुकाव का मतलब है कि हमारी मान्यताओं में यह स्तर पक्का नहीं है।",
     aboutNot: "हम कभी नहीं कहते कि सीटें खाली हैं, और यहाँ कुछ भी लाइव नहीं है। अनुमान घंटेवार और पुराने डेटा पर हैं।", aboutHindi: "हिन्दी पाठ पहला प्रारूप है और इसकी समीक्षा की जा रही है।",
-    loading: "लोड हो रहा है…", noRows: "दिखाने के लिए कुछ नहीं।", stopsA11y: "सुझाए गए स्टॉप"
+    noRows: "दिखाने के लिए कुछ नहीं।", 
   }
 };
 const API_MESSAGES = {   // fixed strings from crowd/text.py that the API returns in English
