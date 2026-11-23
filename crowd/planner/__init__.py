@@ -1,1 +1,1 @@
-"""Journey planner: candidates, scoring and cards (design/business-logic.md §8)."""
+"""Journey planner: candidates, scoring and cards."""

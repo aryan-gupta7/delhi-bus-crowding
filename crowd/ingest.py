@@ -1,4 +1,4 @@
-"""S0a: raw ticket CSV -> typed ticket table (design/development-plan.md §7 S0a)."""
+"""S0a: raw ticket CSV -> typed ticket table."""
 
 from __future__ import annotations
 

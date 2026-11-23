@@ -1,4 +1,4 @@
-"""Day-blocked splits: tickets are never split, only whole days (design §4)."""
+"""Day-blocked splits: tickets are never split, only whole days."""
 
 from __future__ import annotations
 

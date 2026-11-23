@@ -1,4 +1,4 @@
-"""S7: scenario ensemble, levels and the robust-in-range flag (design/mechanism.md S7).
+"""S7: scenario ensemble, levels and the robust-in-range flag.
 
 Each of K draws combines a posterior draw of the boarding volumes (sampling uncertainty, a
 probability) with an hour tilt ``theta_k`` (stratified over a one-sided grid) and a route effect

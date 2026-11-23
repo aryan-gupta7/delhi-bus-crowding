@@ -406,7 +406,7 @@
     "blocking": false,
     "id": "G7",
     "name": "ticket peak/midday ratio relative to timetable peak/midday ratio (09h vs 13h)",
-    "note": "a ratio far from 1 means cross-hour scale is not identified by the data (see mechanism \u00a71)",
+    "note": "a ratio far from 1 means cross-hour scale is not identified by the data (see docs/identifiability.md)",
     "passed": null,
     "threshold": null,
     "value": 6.91

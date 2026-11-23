@@ -67,9 +67,7 @@ returns the crowding along one bus ride. The HTTP API (`/stops`, `/plan`, `/crow
 7. **S6/S7** pressure index `Π = Q̂ / Z` per **seat**; relative bands from exposure-weighted percentiles; a scenario ensemble (hour tilt θ, route effect ε) decides whether a level is `robust_in_range`.
 8. **Planner:** direct and one-transfer journeys on scheduled GTFS; discomfort-adjusted time; "More comfortable" only if its advantage holds in ≥ 80% of draws; each card carries the robustness value Γ\*.
 
-The design documents are in [design/](design/): `mechanism.md` (method, validation, gates),
-`business-logic.md` (rules for levels, tiers and the planner), `development-plan.md` (engineering plan and
-the log of deviations made while building, §16b).
+The method, its assumptions and its validation are written up in [docs/technical_note.md](docs/technical_note.md); what the tickets can and cannot identify is in [docs/identifiability.md](docs/identifiability.md); the held-out results are in [docs/validation_report.md](docs/validation_report.md).
 
 ## Repository map
 
@@ -80,7 +78,7 @@ crowd/            the package: one module per stage (ingest, eligibility, gtfs, 
 config.yaml       every parameter (no constants in code)
 web/              single-page UI (MapLibre)       tests/   unit + mini end-to-end + real-data goldens
 mobile/           Expo phone app for riders, same API and design tokens (see mobile/README.md)
-design/ docs/ reviews/   design docs, short docs, independent reviews of the design and the code
+docs/              technical note, identifiability, validation report, proposal, demo script
 ```
 
 ## Honest limitations

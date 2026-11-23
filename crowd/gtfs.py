@@ -1,6 +1,6 @@
 """S1: GTFS canonicalisation - patterns, scheduled offsets, segments, frozen stretches.
 
-Design: design/mechanism.md S1. A route-direction *is* one ``route_short_name`` (e.g. ``102ADOWN``),
+A route-direction *is* one ``route_short_name`` (e.g. ``102ADOWN``),
 which equals the ticket ``route`` string. Each route's canonical pattern is the stop sequence of
 its longest trip; every other trip is mapped onto it as a stop-id subsequence. Stretches are
 GTFS-only (they never depend on tickets) and are frozen so that reruns reuse the same keys.

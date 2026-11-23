@@ -1,4 +1,4 @@
-"""S6: pressure index and relative bands (design/mechanism.md S6).
+"""S6: pressure index and relative bands.
 
 ``Pi_str = sum_s Q_s tau_s / sum_s Z_s tau_s`` (passenger-minutes over seat-minutes) per stretch,
 band cuts are exposure-weighted percentiles of Pi with weights = passenger-minutes. Levels are
@@ -74,7 +74,7 @@ def stretch_pi(q: np.ndarray, z: np.ndarray, geo: Geometry) -> tuple[np.ndarray,
     """Aggregate segment flows ``q [n_seg, 24]`` and seats ``z [n_seg, 24]`` to stretches (all routes).
 
     Returns ``(pi, passenger_minutes, has_service)`` each ``[n_stretch, 24]``; ``pi`` is passenger-
-    minutes over seat-minutes (design M4).
+    minutes over seat-minutes.
     """
     tau = geo.tau_min.astype(np.float64)[:, None]
     num = np.add.reduceat(q * tau, geo.stretch_starts, axis=0)

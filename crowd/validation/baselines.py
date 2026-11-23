@@ -1,4 +1,4 @@
-"""Baselines B0-B5 and the citywide-share prior (design §4); every metric is reported against them.
+"""Baselines B0-B5 and the citywide-share prior; every metric is reported against them.
 
 B0  raw boardings per route-hour                B3  route-hour mean flow, no segment shape
 B1  boardings per scheduled bus                 B4  per-seat variant of B1 (isolates bus size)

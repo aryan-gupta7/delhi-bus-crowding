@@ -1,4 +1,4 @@
-"""Evidence tiers (design/business-logic.md §4): evidence only, not scale uncertainty.
+"""Evidence tiers: evidence only, not scale uncertainty.
 
 Tier = the lower of the volume tier (route-hour tickets and posterior CV) and the profile tier
 (matched training tickets covering the stretch). Small-N cells are capped at Medium, weekend
@@ -36,7 +36,7 @@ def profile_tier_code(n_od_cov: np.ndarray, cfg: Config) -> np.ndarray:
 
 def combine(volume: np.ndarray, profile: np.ndarray, n_buses: np.ndarray, weekend: bool,
             route_cov: np.ndarray, cfg: Config) -> np.ndarray:
-    """Final tier code after the caps of business-logic §4."""
+    """Final tier code after the evidence caps."""
     tier = np.minimum(volume, profile)
     tier = np.where(n_buses <= cfg.tiers.small_n, np.minimum(tier, 2), tier)
     if weekend:

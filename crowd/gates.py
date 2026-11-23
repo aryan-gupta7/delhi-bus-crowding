@@ -1,4 +1,4 @@
-"""Gates G1-G7 (design/mechanism.md §5): measurable checks run *before* trusting a stage.
+"""Gates G1-G7: measurable checks run *before* trusting a stage.
 
 Each gate returns ``{id, name, value, threshold, passed, blocking, note}``. G1 is a regression
 test of the eligibility rule (its thresholds were chosen on October), not validation. G3 stays
@@ -178,7 +178,7 @@ def g7_hour_profile(ctx: Context) -> dict:
     ratio = float((tickets_h[9] / tickets_h[13]) / (trips_h[9] / trips_h[13]))
     return _gate("G7", "ticket peak/midday ratio relative to timetable peak/midday ratio (09h vs 13h)",
                  round(ratio, 2), None, None,
-                 note="a ratio far from 1 means cross-hour scale is not identified by the data (see mechanism §1)")
+                 note="a ratio far from 1 means cross-hour scale is not identified by the data (see docs/identifiability.md)")
 
 
 GATES = (g1_eligibility, g2_coverage, g2b_fare_precision, g3_seats, g4_small_n, g5_gtfs, g6_shift, g7_hour_profile)

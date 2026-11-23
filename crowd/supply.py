@@ -1,4 +1,4 @@
-"""S4: scheduled supply N, seats per bus and Z = N * seats (design/mechanism.md S4)."""
+"""S4: scheduled supply N, seats per bus and Z = N * seats."""
 
 from __future__ import annotations
 

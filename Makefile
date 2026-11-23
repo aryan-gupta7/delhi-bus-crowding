@@ -1,4 +1,4 @@
-# One command per concern (design/development-plan.md §4). Requires uv (https://docs.astral.sh/uv/).
+# One command per concern. Requires uv (https://docs.astral.sh/uv/).
 .PHONY: setup all gates validate test test-data serve clean
 
 setup:            ## create the pinned Python 3.12 environment

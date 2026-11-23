@@ -1,6 +1,5 @@
 """S5: the model of record - Poisson-gamma volume x OD profile x passage-hour convolution.
 
-Design: design/mechanism.md S5,
 ``Q^(r,s,h) = sum_{h'} Lambda^(r,h') * G(r,h') * sum_{(i,j)} P_band(h')(i,j) 1[i <= s < j] *
 P(pass s in h | h', i, s)`` where
 

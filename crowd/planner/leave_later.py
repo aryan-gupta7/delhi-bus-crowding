@@ -1,4 +1,4 @@
-"""Leave later (design/business-logic.md §8.6): would departing a little later be clearly calmer?
+"""Leave later: would departing a little later be clearly calmer?
 
 For each offset the same trip is re-planned. The fastest option at the later time is compared with
 the fastest option now, counting the extra waiting time (``offset``) in its journey time, with the

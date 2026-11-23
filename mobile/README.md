@@ -1,7 +1,7 @@
 # Mobile app (Expo / React Native)
 
 A phone app for the same planner. It has no logic of its own: it calls the HTTP API (`/stops`, `/plan`,
-`/examples`, `/operator/stretches`) and draws what comes back, with the wording rules of `design/business-logic.md` §9.
+`/examples`, `/operator/stretches`) and draws what comes back, with the wording rules in `web/i18n.js` (always "usually", never "now" for crowding, never "seats available").
 
 Screens: **Plan a trip** · **Results** (with a calmer option, or "No clearly calmer option" plus the leave-later chip) ·
 **Journey detail** (per-stretch strip, "leans" tooltip, stepped leave-later control Now, +10 … +60) ·

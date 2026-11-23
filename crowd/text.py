@@ -1,4 +1,4 @@
-"""Every user-visible string (design/business-logic.md §9). Wording rules:
+"""Every user-visible string. Wording rules:
 
 * always "usually", never "now" or "currently" (the data are historical);
 * level names are relative ("Lighter / Busy / Very busy"), never "seats available";

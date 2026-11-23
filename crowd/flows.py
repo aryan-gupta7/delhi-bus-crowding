@@ -1,6 +1,6 @@
 """S3: ticket pairs -> aggregated counts, OD pairs and observed passage-hour flows.
 
-Design: design/mechanism.md S3, development-plan.md §7 S3. A ticket boarded at minute ``t0`` on
+A ticket boarded at minute ``t0`` on
 stop ``a`` crosses segment ``s`` at ``t0 + gamma * (off[s] - off[a])``; flow is binned by passage
 hour. Eligibility masks the *boarding* hour. The estimator reads only the two aggregate tables
 written here (``counts`` and ``od_pairs``), never raw tickets.
@@ -30,7 +30,7 @@ def build_counts(tickets: pd.DataFrame, geo: Geometry, day_hour_ok: pd.DataFrame
     """Boarding tickets per (route, date, hour) for every route-resolved ticket.
 
     Includes an explicit zero row for each eligible (date, hour) of each ticketed route, so that
-    the Poisson-gamma volume model counts zero days (design M9).
+    the Poisson-gamma volume model counts zero days.
     """
     t = eligible_tickets(tickets, day_hour_ok)
     t = t[geo.route_ix(t["route"]) >= 0]

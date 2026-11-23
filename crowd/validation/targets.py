@@ -1,4 +1,4 @@
-"""Like-for-like held-out flow target and the baselines' predictors (design M6).
+"""Like-for-like held-out flow target and the baselines' predictors.
 
 The model's Q-hat counts every route-resolved ticket (decision D-1), while observed flows can
 only use both-ends-matched tickets. The held-out target is therefore the empirical test-day flow

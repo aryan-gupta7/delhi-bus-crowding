@@ -1,4 +1,4 @@
-"""S8: queryable crowding table and the ride-level ``query`` (design/mechanism.md S8)."""
+"""S8: queryable crowding table and the ride-level ``query``."""
 
 from __future__ import annotations
 

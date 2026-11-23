@@ -1,6 +1,6 @@
 "use strict";
 /* UI strings. English is the reference. The Hindi text is a first pass and needs review by a native speaker
-   (it is flagged in the About sheet). Wording rules (design/business-logic.md §9): always "usually", never "now";
+   (it is flagged in the About sheet). Wording rules: always "usually", never "now";
    relative level names; never "seats available", "80% likely" or "buses needed". */
 const STRINGS = {
   en: {

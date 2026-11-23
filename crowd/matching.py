@@ -1,4 +1,4 @@
-"""S2: ticket stop names -> canonical stop indices (design/mechanism.md S2).
+"""S2: ticket stop names -> canonical stop indices.
 
 Matching is per route: candidates are only stops on that route's canonical pattern.
 Cascade, stopping at the first success: (1) normalise, (2) exact on-route, (3) split composite

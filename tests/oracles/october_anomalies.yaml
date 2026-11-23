@@ -1,4 +1,4 @@
-# Known anomalies of the October ticket file found by profiling (design/mechanism.md S0).
+# Known anomalies of the October ticket file found by profiling.
 # Used ONLY by gate G1 (a regression test of the eligibility rule); never read by the pipeline.
 outage_hours:                 # (date: hours that must be masked)
   "2026-10-06": [9, 10]

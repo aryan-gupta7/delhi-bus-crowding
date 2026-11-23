@@ -1,4 +1,4 @@
-"""S0b: which days and hours count (design/mechanism.md S0, business-logic.md §2).
+"""S0b: which days and hours count.
 
 The rule is data-driven: day-type first, two ticket streams (NULL-vehicle / tagged) checked
 against the median of their own day-type, a stream-fault test, and an hour mask with a count

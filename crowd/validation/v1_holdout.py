@@ -1,4 +1,4 @@
-"""V1: temporal hold-out on whole weekdays (design §4, development-plan §9).
+"""V1: temporal hold-out on whole weekdays.
 
 Train = first eligible weekdays, test = the remaining ones. Everything (alpha, phi, prior,
 profiles, the profile-shrinkage multiplier, z_h, band cuts) is fitted on the training days only.
