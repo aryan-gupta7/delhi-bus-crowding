@@ -15,7 +15,7 @@ export function Segmented<K extends string>({ options, value, onChange }: Props<
           <Pressable key={o.key} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange(o.key)}
             style={{ flex: 1, minHeight: TOUCH, borderRadius: radius.control - 3, alignItems: "center", justifyContent: "center", paddingHorizontal: 8,
               backgroundColor: on ? palette.surf : "transparent", borderWidth: 1, borderColor: on ? palette.border : "transparent" }}>
-            <Text size={14} medium tone={on ? "ink" : "mut"} numberOfLines={1}>{o.label}</Text>
+            <Text size={14} medium tone={on ? "ink" : "mut"} >{o.label}</Text>
           </Pressable>
         );
       })}

@@ -9,11 +9,11 @@ export function Logo() {
   const { t } = useApp();
   const { palette } = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessibilityRole="header">
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1, marginRight: 12 }} accessibilityRole="header">
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 2 }}>
         {[0.8, 1, 1.2].map((scale) => <PersonGlyph key={scale} color={palette.ink} scale={scale} />)}
       </View>
-      <Text size={17} display>{t("appTitle")}</Text>
+      <Text size={17} display style={{ flexShrink: 1 }}>{t("appTitle")}</Text>
     </View>
   );
 }
