@@ -127,9 +127,21 @@ planner:                     # business-logic.md §8
   min_advantage_frac: 0.10
   overall_leg_share: 0.25    # P-R15
   gamma_max: 10.0            # P-R16
+  leave_later_offsets: [10, 20, 30, 40, 50, 60]   # minutes after the requested time that the planner re-plans for
+  max_leave_later_chip: 15   # P-R12: a leave-later chip is offered only for a delay up to this many minutes
 
 gates:                       # design/mechanism.md §5
   min_top250_coverage: 0.65  # G2 target (passenger-weighted both-ends match, top-250 routes)
   min_shift_level_kappa: 0.8 # G6: stretch-level kappa between base and destination-shifted flows (information on the flow Spearman)
   fare_check_sample: 200000  # tickets per match class for the fare-vs-distance precision proxy
   oracle: tests/oracles/october_anomalies.yaml   # G1 regression oracle (never read by the pipeline)
+
+operator:                    # operator view only (labelled "scenario, not measured" wherever shown)
+  daily_riders: 4080000      # press figure for Delhi bus riders per day (unverified, A-1); with the sample's daily passengers it gives the capture factor g
+  operated_share: [0.7, 1.0] # A-2: share of scheduled buses actually operated
+  list_size: 10              # rows in the overloaded and relief lists
+
+demo:                        # example trips offered on the planner screens (names are resolved against the GTFS stops)
+  examples:
+    - {from: "Prithvi Raj Road", to: "Supreme Court", time: "08:57"}
+    - {from: "Ali Village", to: "MahaMaya Flyover West", time: "09:50"}

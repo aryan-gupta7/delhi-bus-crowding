@@ -3,53 +3,106 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Delhi bus crowding planner</title>
+<meta name="color-scheme" content="light dark">
+<title>Delhi bus crowding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Inter:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<header>
-  <h1>Delhi bus crowding planner</h1>
-  <nav>
-    <button id="tab-plan" class="tab active" data-tab="plan">Plan a trip</button>
-    <button id="tab-operator" class="tab" data-tab="operator">Operator view</button>
-  </nav>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 132 60" width="46" height="21" aria-hidden="true"><rect x="2" y="6" width="124" height="40" rx="9" fill="#FFFFFF" stroke="#8892B5" stroke-width="2"/><rect x="2" y="30" width="124" height="8" fill="#1FA25A"/><rect x="2" y="38" width="124" height="6" fill="#F58220"/><g fill="#8FC7FF"><rect x="10" y="12" width="20" height="14" rx="3"/><rect x="34" y="12" width="20" height="14" rx="3"/><rect x="58" y="12" width="20" height="14" rx="3"/><rect x="82" y="12" width="20" height="14" rx="3"/></g><g fill="#0E1530"><circle cx="30" cy="46" r="8"/><circle cx="98" cy="46" r="8"/></g></svg>
+    <span class="dsp" data-i18n="appTitle">Delhi bus crowding</span>
+  </div>
+  <div class="seg" role="group" aria-label="View" id="seg-view"><button data-view="plan" class="on" aria-pressed="true" data-i18n="viewPlan">Plan a trip</button><button data-view="operator" aria-pressed="false" data-i18n="viewOperator">Operator view</button></div>
+  <div class="seg" role="group" id="seg-opday" hidden aria-label="Day type"><button data-day="weekday" class="on" aria-pressed="true" data-i18n="weekday">Weekday</button><button data-day="weekend" aria-pressed="false" data-i18n="weekend">Weekend or holiday</button></div>
+  <label class="small mut" id="op-hour-wrap" hidden><span data-i18n="hourOnMap">Hour on map</span> <select class="sel" id="op-hour"></select></label>
+  <span class="spacer"></span>
+  <div class="seg compact" role="group" id="seg-theme" aria-label="Theme"><button data-theme="auto" class="on" aria-pressed="true" data-i18n="themeAuto">Auto</button><button data-theme="light" aria-pressed="false" data-i18n="themeLight">Light</button><button data-theme="dark" aria-pressed="false" data-i18n="themeDark">Dark</button></div>
+  <div class="seg compact" role="group" id="seg-lang" aria-label="Language" style="width:104px"><button data-lang="en" class="on" aria-pressed="true">EN</button><button data-lang="hi" aria-pressed="false">हिं</button></div>
+  <button class="lk" id="open-info" data-i18n="howTo">How to read this</button>
 </header>
-<main>
-  <section id="panel">
-    <div id="plan" class="pane">
-      <form id="plan-form" autocomplete="off">
-        <label>From <input id="from" list="from-list" placeholder="Start typing a stop name" required></label>
+<div class="livery"><i style="background:#1FA25A"></i><i style="background:#F58220"></i><i style="background:#1F5FE0"></i><i style="background:#C8174A"></i><i style="background:#4CC3F0"></i></div>
+
+<main id="view-plan" class="layout">
+  <aside class="side stack">
+    <div class="hero">
+      <h1 class="dsp" data-i18n="heroTitle">Where to, and when?</h1>
+      <p data-i18n="heroSub">See where on a bus ride people are usually most crowded.</p>
+      <svg viewBox="0 0 132 60" width="170" height="77" aria-hidden="true"><rect x="2" y="6" width="124" height="40" rx="9" fill="#FFFFFF"/><rect x="2" y="30" width="124" height="8" fill="#1FA25A"/><rect x="2" y="38" width="124" height="6" fill="#F58220"/><g fill="#8FC7FF"><rect x="10" y="12" width="20" height="14" rx="3"/><rect x="34" y="12" width="20" height="14" rx="3"/><rect x="58" y="12" width="20" height="14" rx="3"/><rect x="82" y="12" width="20" height="14" rx="3"/></g><rect x="106" y="12" width="16" height="22" rx="3" fill="#6FB3FF"/><g fill="#0E1530"><circle cx="30" cy="46" r="8"/><circle cx="98" cy="46" r="8"/></g><g fill="#FFFFFF"><circle cx="30" cy="46" r="3"/><circle cx="98" cy="46" r="3"/></g></svg>
+    </div>
+    <form id="plan-form" autocomplete="off" class="stack">
+      <div class="card">
+        <div class="fld"><label for="from" data-i18n="from">From</label><input id="from" list="from-list" required data-i18n-ph="fromPh"></div>
         <datalist id="from-list"></datalist>
-        <label>To <input id="to" list="to-list" placeholder="Start typing a stop name" required></label>
+        <div style="height:1px;background:var(--bd);margin:0 16px"></div>
+        <div class="fld"><label for="to" data-i18n="to">To</label><input id="to" list="to-list" required data-i18n-ph="toPh"></div>
         <datalist id="to-list"></datalist>
-        <div class="row">
-          <label>Leave at <input id="time" type="time" value="09:00" required></label>
-          <label>Day <select id="day"><option value="weekday">Weekday</option><option value="weekend">Weekend / holiday</option></select></label>
-        </div>
-        <button type="submit">Show options</button>
-      </form>
-      <div id="status" role="status"></div>
-      <div id="cards"></div>
-      <p id="footnotes" class="muted"></p>
-    </div>
-    <div id="operator" class="pane" hidden>
-      <div class="row">
-        <label>Day <select id="op-day"><option value="weekday">Weekday</option><option value="weekend">Weekend / holiday</option></select></label>
-        <label>Hour on map <select id="op-hour"></select></label>
       </div>
-      <p class="muted">Worst stretch of each route by hour (busiest routes first). Click a route to draw it on the map.
-         Hatched = low evidence; dashed = no estimate.</p>
-      <div id="heatmap"></div>
+      <div class="row">
+        <div class="card fld" style="flex:0 0 190px;border-radius:20px"><label for="time" data-i18n="at" style="width:auto">Leave at</label><input id="time" type="time" value="08:57" required style="text-align:right"></div>
+        <div class="seg" id="seg-day" role="group" aria-label="Day type" style="flex:1 1 220px"><button type="button" data-day="weekday" class="on" aria-pressed="true" data-i18n="weekday">Weekday</button><button type="button" data-day="weekend" aria-pressed="false" data-i18n="weekend">Weekend or holiday</button></div>
+      </div>
+      <button class="btn" type="submit"><span data-i18n="show">Show options</span></button>
+    </form>
+    <p id="status" role="status" class="small"></p>
+    <div id="results" class="stack"></div>
+    <div id="examples-wrap" hidden>
+      <p class="sec small" style="font-weight:500;margin-bottom:6px" data-i18n="tryPeak">Try a peak trip</p>
+      <div class="card" id="examples" style="overflow:hidden;border-radius:20px"></div>
     </div>
+    <p id="foot" class="mut tiny"></p>
+  </aside>
+  <section class="mapwrap" aria-label="Map">
+    <div id="map"></div>
+    <div class="card legend" id="legend"></div>
+    <div class="seg hours" id="seg-hours" role="group" aria-label="Hour on map" hidden></div>
+    <p class="sec tiny maplabel" id="maplabel"></p>
   </section>
-  <div id="map" aria-label="Map"></div>
 </main>
-<div id="legend">
-  <span class="chip l1">● Lighter</span><span class="chip l2">●● Busy</span><span class="chip l3">●●● Very busy</span>
-  <span class="chip l0">? No estimate</span>
-</div>
+
+<main id="view-op" hidden>
+  <div class="opgrid">
+    <section class="card" style="flex:999 1 640px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 class="dsp" style="font-size:22px" data-i18n="opTitle">Worst stretch of each route, by hour</h2>
+        <div id="op-legend" class="row" style="gap:6px"></div>
+      </div>
+      <p class="mut small" style="margin-top:4px" data-i18n="opHint"></p>
+      <div style="overflow-x:auto;margin-top:14px"><div id="heat" style="min-width:640px"></div></div>
+    </section>
+    <aside class="card" style="flex:1 1 340px">
+      <h2 class="dsp" style="font-size:22px" id="det-title" data-i18n="detail">Stretch detail</h2>
+      <div id="det"><p class="mut small" style="margin-top:8px" data-i18n="pickCell"></p></div>
+    </aside>
+  </div>
+  <div class="opgrid">
+    <section class="card" style="flex:1 1 560px">
+      <h2 class="dsp" style="font-size:20px" data-i18n="overloaded">Usually overloaded stretches</h2>
+      <p class="mut small" style="margin-top:4px" data-i18n="overloadedHint"></p>
+      <div style="overflow-x:auto;margin-top:10px"><table id="overloaded"></table></div>
+    </section>
+    <section class="card" style="flex:1 1 440px">
+      <h2 class="dsp" style="font-size:20px" data-i18n="reliefTitle">Where one more bus relieves most</h2>
+      <p class="mut small" style="margin-top:4px" data-i18n="reliefHint"></p>
+      <div id="relief" style="margin-top:12px;display:flex;flex-direction:column;gap:12px"></div>
+      <p class="mut tiny" style="margin-top:14px;line-height:1.45" data-i18n="reliefNote"></p>
+    </section>
+  </div>
+  <div class="note small sec"><b style="color:var(--ink);font-weight:500" data-i18n="fairness">Fairness note.</b> <span data-i18n="fairnessText"></span></div>
+  <p class="mut small" id="op-foot" style="padding:0 28px 24px"></p>
+</main>
+
+<dialog id="info" aria-labelledby="info-title">
+  <h2 class="dsp" id="info-title" style="font-size:22px" data-i18n="aboutTitle">How to read this</h2>
+  <div id="info-body" style="margin-top:12px;display:flex;flex-direction:column;gap:10px"></div>
+  <button class="btn" id="close-info" style="margin-top:16px"><span data-i18n="close">Close</span></button>
+</dialog>
+
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="/static/i18n.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
