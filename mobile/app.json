@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Delhi bus crowding",
+    "slug": "delhi-bus-crowding",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "android": { "package": "dev.hackathon.delhibuscrowding", "usesCleartextTraffic": true },
+    "ios": { "bundleIdentifier": "dev.hackathon.delhibuscrowding" },
+    "web": { "bundler": "metro" },
+    "plugins": ["expo-font"],
+    "extra": { "apiBaseUrl": "http://10.0.2.2:8000" }
+  }
+}

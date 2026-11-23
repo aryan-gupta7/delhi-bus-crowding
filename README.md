@@ -23,7 +23,7 @@ make setup       # uv sync
 make all         # pipeline S0-S8, ~1.5 min on 16 cores; writes out/ and out/run_manifest.json
 make gates       # gates G1-G7 (non-zero exit on a blocking failure)
 make test        # 40+ fast unit and mini end-to-end tests
-make serve       # planner + operator view at http://127.0.0.1:8000
+make serve       # planner + operator web view at http://127.0.0.1:8000 (light/dark, English/Hindi)
 make validate    # held-out validation -> out/validation/report.md (about 10 minutes; see below)
 ```
 
@@ -49,6 +49,8 @@ Stages whose inputs, config sections and source files are unchanged are skipped.
 | `run_manifest.json` | Input/output hashes, config hash, git commit, ingest report, timings |
 | `gates.json`, `validation/report.md` | Gate results and the held-out validation report (a committed copy, aggregated, is `docs/validation_report.md`) |
 | `estimator_fit.json` | Fitted α, φ, Dirichlet strengths and the shrinkage multiplier chosen on the inner split |
+
+Web and phone: the web page has the planner and the operator view; the phone app (`mobile/`) is the rider planner only. Both call the API below and use the same design tokens and wording (a test fails if they drift). The Hindi text is a first pass.
 
 Command line: `python -m crowd query --route 8UP --from "Ali Village" --to "Mahamaya Flyover West" --time 09:30`
 returns the crowding along one bus ride. The HTTP API (`/stops`, `/plan`, `/crowding`, `/operator/*`,
@@ -77,6 +79,7 @@ crowd/            the package: one module per stage (ingest, eligibility, gtfs, 
                   stages.py (I/O glue + registry), gates.py, tuning.py, planner/, api/, validation/
 config.yaml       every parameter (no constants in code)
 web/              single-page UI (MapLibre)       tests/   unit + mini end-to-end + real-data goldens
+mobile/           Expo phone app for riders, same API and design tokens (see mobile/README.md)
 design/ docs/ reviews/   design docs, short docs, independent reviews of the design and the code
 ```
 
