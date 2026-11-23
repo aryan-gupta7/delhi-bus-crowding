@@ -37,12 +37,13 @@ computer's LAN address, e.g. `http://192.168.1.20:8000`. `EXPO_PUBLIC_API_BASE_U
 * **Encodings that carry meaning, never colour alone.** A level is person glyphs + word + fill. Evidence tier: High solid,
   Medium ringed, Low hatched. "leans" is a dashed badge, "Firm" a plain one. A stretch without an estimate is a dashed
   "? No estimate".
-* **Low-end Android.** No blur, no gradients inside components, no map tiles, one font family (Inter 400/500), no shadow on
+* **Low-end Android.** No blur, no gradients inside components, no map tiles, one font family (Geist 400/500, plus Geist Mono 500 for route plates, clock times and slider ticks: three font files in total), no shadow on
   cards (only the dock and the tooltip float), last result cached in AsyncStorage so a dropped connection still shows something.
 
 ## Choices to know about
 
-* Headings use Inter 500, not Geist, to keep the bundle small. Everything else follows the design legend.
+* Hindi text uses the phone's own Devanagari font (Noto Sans Devanagari on Android) instead of a bundled copy, to keep the bundle small.
+* The look is the revised design: paper and graphite neutrals, one cobalt accent, ink primary buttons, no livery stripe or illustrations.
 * The map is a schematic of the planned stretches (width follows sampled riders), not a street map; the web UI has the street map.
 * The rank-stability view of the operator mock-up ("Rank held 9 of 10") is not built: the pipeline does not store per-draw rankings.
 * The operator view is web-only; the phone app is for riders.

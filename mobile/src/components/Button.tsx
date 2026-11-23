@@ -14,12 +14,12 @@ export function Button({ label, kind = "primary", style, ...rest }: Props) {
       accessibilityLabel={label}
       {...rest}
       style={(state) => [
-        { minHeight: primary ? 50 : TOUCH, borderRadius: radius.control, alignItems: "center", justifyContent: "center", paddingHorizontal: 16,
-          backgroundColor: primary ? palette.accent : "transparent", opacity: state.pressed ? 0.8 : 1 },
+        { minHeight: primary ? 52 : TOUCH, borderRadius: primary ? radius.button : radius.control, alignItems: "center", justifyContent: "center", paddingHorizontal: 16,
+          backgroundColor: primary ? palette.ink : "transparent", opacity: state.pressed ? 0.8 : 1 },
         typeof style === "function" ? style(state) : style,
       ]}
     >
-      <Text size={primary ? 16 : 14} medium tone={primary ? "ink" : "accent"} style={primary ? { color: palette.onAccent } : kind === "link" ? { textDecorationLine: "underline" } : undefined}>{label}</Text>
+      <Text size={primary ? 16 : 14} medium tone={primary ? "ink" : "accent"} style={primary ? { color: palette.bg } : kind === "link" ? { textDecorationLine: "underline" } : undefined}>{label}</Text>
     </Pressable>
   );
 }

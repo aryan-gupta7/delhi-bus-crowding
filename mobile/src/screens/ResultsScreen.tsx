@@ -1,4 +1,5 @@
 import { ScrollView, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 import { Badge } from "../components/Badge";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -27,7 +28,7 @@ export function ResultsScreen({ view, onBack, onDetails, onAbout }: Props) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScreenHeader title={`${view.fromName} → ${view.toName}`} subtitle={count ? t("optionsFor", { n: count, day: t(`day_${plan.query.day_type}`), time: plan.query.time }) : undefined} onBack={onBack} />
+      <ScreenHeader title={t("fromTo", { from: view.fromName, to: view.toName })} subtitle={count ? t("optionsFor", { n: count, day: t(`day_${plan.query.day_type}`), time: plan.query.time }) : undefined} onBack={onBack} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}>
         {view.cached ? <Badge label={t("lastResult")} /> : null}
         {count === 0 ? (
@@ -40,16 +41,19 @@ export function ResultsScreen({ view, onBack, onDetails, onAbout }: Props) {
         ) : (
           <>
             <Card variant="dashed" style={{ gap: 6 }}>
-              <Text size={22} medium accessibilityRole="header">{t("noCalmer")}</Text>
+              <Text size={24} display accessibilityRole="header">{t("noCalmer")}</Text>
               <Text tone="sec" size={14}>{t("noCalmerWhy", { r: plan.evidence.route_switch_ratio.toFixed(1) })}</Text>
               <Button kind="link" label={t("whyCant")} onPress={onAbout} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} />
             </Card>
             {cards.fastest ? <OptionCard card={cards.fastest} picked={false} onDetails={() => onDetails("fastest")} /> : null}
             {chip ? (
               <Pressable accessibilityRole="button" onPress={() => onDetails("fastest", chip.offset)}
-                style={{ minHeight: 64, borderRadius: radius.inner, backgroundColor: palette.accSubtle, paddingHorizontal: 16, paddingVertical: 12, justifyContent: "center" }}>
-                <Text medium tone="accent">{t("later", { n: chip.offset })}</Text>
-                <Text tone="sec" size={13}>{t("laterSub", { h: `${chip.depart.slice(0, 2)}:00`, n: Math.round(chip.arrives_later_by) })}</Text>
+                style={{ minHeight: 64, borderRadius: radius.inner, backgroundColor: palette.surf2, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <Svg width={20} height={20} viewBox="0 0 24 24"><Circle cx={12} cy={12} r={9} stroke={palette.accInk} strokeWidth={1.75} fill="none" /><Path d="M12 7v5l3 2" stroke={palette.accInk} strokeWidth={1.75} fill="none" strokeLinecap="round" /></Svg>
+                <View style={{ flex: 1 }}>
+                  <Text medium>{t("later", { n: chip.offset })}</Text>
+                  <Text tone="sec" size={13}>{t("laterSub", { h: `${chip.depart.slice(0, 2)}:00`, n: Math.round(chip.arrives_later_by) })}</Text>
+                </View>
               </Pressable>
             ) : null}
             {plan.compared ? (

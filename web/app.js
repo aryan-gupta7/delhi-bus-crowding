@@ -28,6 +28,7 @@ function levelPill(code, tier = "High", size = "") {
   return `<span class="lv l${code}${TIER_CLS[tier] || ""} ${size}">${pips(code)}${esc(t("L" + code))}</span>`;
 }
 const lowestTier = (legs) => legs.reduce((a, l) => (TIER_RANK[l.tier] < TIER_RANK[a] ? l.tier : a), "High");
+const monoTimes = (text) => esc(text).replace(/\b\d{2}:\d{2}\b/g, '<span class="mono">$&</span>');   // clock times are set in Geist Mono
 const clock = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 // ---- theme, language, static text ----------------------------------------------------------------
@@ -40,6 +41,7 @@ function applyLang() {
   document.documentElement.lang = state.lang;
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
   for (const el of document.querySelectorAll("[data-i18n-ph]")) el.placeholder = t(el.dataset.i18nPh);
+  for (const el of document.querySelectorAll("[data-i18n-label]")) el.setAttribute("aria-label", t(el.dataset.i18nLabel));
   for (const b of $("seg-lang").children) { b.classList.toggle("on", b.dataset.lang === state.lang); b.setAttribute("aria-pressed", b.dataset.lang === state.lang); }
   renderLegend(); renderExamples(); renderPlan(); renderHeat(); renderCell(); renderInfo(); renderOperatorLists();
 }
@@ -78,15 +80,15 @@ function robustText(card) {
 function optionHtml(card, picked) {
   const tier = lowestTier(card.legs);
   const leaning = card.legs.some((l) => !l.robust_in_range);
-  const routes = card.legs.map((l) => `<span class="rt">${esc(l.route)}</span>`).join(" ");
+  const routes = card.legs.map((l) => `<span class="rt mono">${esc(l.route)}</span>`).join(" ");
   const via = card.transfers === 0 ? t("direct") : t(card.transfers === 1 ? "transfer" : "transfers", { n: card.transfers });
   const marks = [leaning ? `<span class="badge ln" title="${esc(t("leansTip"))}">${t("leans")}</span>` : "",
                  card.partly_estimated ? `<span class="badge">${t("partly")}</span>` : ""].join("");
   const foot = card.robustness ? `<div class="foot"><span class="badge" title="${esc(t("firmTip"))}">${leaning ? t("leans") : t("firm")}</span><p class="sec small" style="flex:1;min-width:200px">${esc(robustText(card))}</p></div>` : "";
   return `<article class="card opt${picked ? " pick" : ""}"><div class="head"><span style="display:flex;gap:6px;flex-wrap:wrap">${routes}</span>
-    <span style="display:flex;gap:6px;align-items:center">${picked ? "" : marks}<span class="badge${picked ? " acc" : ""}">${esc(t(picked ? "comfortable" : "fastest"))}</span></span></div>
+    <span style="display:flex;gap:6px;align-items:center">${picked ? "" : marks}<span class="badge${picked ? " inv" : ""}">${esc(t(picked ? "comfortable" : "fastest"))}</span></span></div>
     <div class="main">${levelPill(card.level.code, tier, "big")}<span><span class="dsp mins">${Math.round(card.minutes)}</span> <span class="sec">${esc(t("min"))}</span></span></div>
-    <p class="desc sec">${esc(card.legs[0].from)} → ${esc(card.legs[card.legs.length - 1].to)}, ${esc(via)} ${card.depart}–${card.arrive}</p>
+    <p class="desc sec">${esc(t("fromTo", { from: card.legs[0].from, to: card.legs[card.legs.length - 1].to }))}, ${esc(via)} <span class="mono">${card.depart}–${card.arrive}</span></p>
     ${picked ? `<p class="small mut" style="margin-top:4px">${marks}</p>` : ""}${foot}${detailsHtml(card)}</article>`;
 }
 function stripHtml(leg, key) {
@@ -104,8 +106,10 @@ function detailsHtml(card) {
 function laterHtml() {
   const rows = state.plan?.leave_later?.offsets || [];
   if (!rows.length) return "";
-  return `<div class="leg"><p class="small sec" style="font-weight:500">${esc(t("laterTitle"))}</p>
-    <div class="steps"><button type="button" class="step on" data-offset="0">${esc(t("now"))}</button>${rows.map((r) => `<button type="button" class="step" data-offset="${r.offset}">+${r.offset}</button>`).join("")}</div>
+  const ticks = [0, ...rows.map((r) => r.offset)];
+  return `<div class="leg"><div style="display:flex;justify-content:space-between;align-items:baseline"><p class="small sec" style="font-weight:500">${esc(t("laterTitle"))}</p><p class="mono small" data-readout style="color:var(--acc-i)"></p></div>
+    <div class="slider" data-slider><span class="readout" data-hour hidden></span><div class="trk"><div class="fill"></div><div class="bead"></div></div>
+    <div class="ticks">${ticks.map((o) => `<button type="button" class="tick mono${o === 0 ? " on" : ""}" data-offset="${o}" aria-label="${esc(o === 0 ? t("now") : "+" + o)}"><span>${o === 0 ? esc(t("now")) : "+" + o}</span></button>`).join("")}</div></div>
     <p class="small" data-later style="margin-top:8px"></p></div>`;
 }
 function renderPlan() {
@@ -113,7 +117,7 @@ function renderPlan() {
   if (!r) { box.innerHTML = ""; $("foot").textContent = ""; return; }
   const cards = Object.values(r.cards);
   if (!cards.length) { box.innerHTML = `<div class="card none"><p class="dsp" style="font-size:20px">${esc(t("noService"))}</p></div>`; return; }
-  const parts = [`<p class="sec small" style="font-weight:500">${esc(t("optionsFor", { n: cards.length, day: t("day_" + r.query.day_type), time: r.query.time }))}</p>`];
+  const parts = [`<p class="sec small" style="font-weight:500">${monoTimes(t("optionsFor", { n: cards.length, day: t("day_" + r.query.day_type), time: r.query.time }))}</p>`];
   if (r.cards.comfortable) {
     parts.push(optionHtml(r.cards.fastest, false), optionHtml(r.cards.comfortable, true));
   } else {
@@ -121,9 +125,9 @@ function renderPlan() {
       <p class="sec" style="margin-top:6px;font-size:14px;line-height:1.45">${esc(t("noCalmerWhy", { r: r.evidence.route_switch_ratio.toFixed(1) }))}</p>
       <button class="lk small" type="button" id="why">${esc(t("whyCant"))}</button></div>`, optionHtml(r.cards.fastest, false));
     const chip = r.leave_later?.chip;
-    if (chip) parts.push(`<button class="chip" type="button" data-chip="${chip.offset}"><span style="flex:1"><b>${esc(t("later", { n: chip.offset }))}</b><span class="sec small">${esc(t("laterSub", { h: chip.depart.slice(0, 2) + ":00", n: Math.round(chip.arrives_later_by) }))}</span></span></button>`);
+    if (chip) parts.push(`<button class="chip" type="button" data-chip="${chip.offset}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span style="flex:1"><b>${esc(t("later", { n: chip.offset }))}</b><span class="sec small">${monoTimes(t("laterSub", { h: chip.depart.slice(0, 2) + ":00", n: Math.round(chip.arrives_later_by) }))}</span></span></button>`);
     if (r.compared) parts.push(`<div class="card" style="padding:12px 16px;border-radius:20px"><p class="sec small" style="font-weight:500">${esc(t("compared"))}</p>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">${r.compared.routes.map((x) => `<span class="rt sm">${esc(x)}</span>`).join("→")}${levelPill(r.compared.level.code, "High", "sm")}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">${r.compared.routes.map((x) => `<span class="rt sm mono">${esc(x)}</span>`).join("→")}${levelPill(r.compared.level.code, "High", "sm")}</div>
       ${r.compared.partly_estimated ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span class="badge">${t("partly")}</span><p class="mut tiny">${esc(t("partlyNote"))}</p></div>` : ""}</div>`);
   }
   box.innerHTML = parts.join("");
@@ -133,11 +137,11 @@ function renderPlan() {
 $("results").addEventListener("click", (ev) => {
   const seg = ev.target.closest(".sg");
   if (seg) return showTip(seg);
-  const step = ev.target.closest(".step");
+  const step = ev.target.closest(".tick");
   if (step) return showLater(step);
   if (ev.target.closest("#why")) { $("info").showModal(); return; }
   const chip = ev.target.closest("[data-chip]");
-  if (chip) { const details = $("results").querySelector("details"); if (details) { details.open = true; $("results").querySelector(`.step[data-offset="${chip.dataset.chip}"]`)?.click(); details.scrollIntoView({ block: "nearest" }); } }
+  if (chip) { const details = $("results").querySelector("details"); if (details) { details.open = true; $("results").querySelector(`.tick[data-offset="${chip.dataset.chip}"]`)?.click(); details.scrollIntoView({ block: "nearest" }); } }
 });
 function findLeg(key) {
   const [title, li] = [key.slice(0, key.lastIndexOf("-")), Number(key.slice(key.lastIndexOf("-") + 1))];
@@ -160,12 +164,17 @@ function showTip(btn) {
   tip.innerHTML = html; tip.hidden = false;
 }
 function showLater(btn) {
-  const wrap = btn.closest(".leg");
-  for (const b of wrap.querySelectorAll(".step")) b.classList.toggle("on", b === btn);
-  const offset = Number(btn.dataset.offset), out = wrap.querySelector("[data-later]");
-  if (offset === 0) { out.innerHTML = ""; return; }
+  const wrap = btn.closest(".leg"), ticks = [...wrap.querySelectorAll(".tick")];
+  const offset = Number(btn.dataset.offset), pct = (100 * ticks.indexOf(btn)) / (ticks.length - 1);
+  for (const b of ticks) b.classList.toggle("on", b === btn);
+  wrap.querySelector(".fill").style.width = pct + "%";
+  const bead = wrap.querySelector(".bead"); bead.style.left = pct + "%";
+  const out = wrap.querySelector("[data-later]"), readout = wrap.querySelector("[data-readout]"), hour = wrap.querySelector("[data-hour]");
   const row = state.plan.leave_later.offsets.find((r) => r.offset === offset);
-  out.innerHTML = row ? `${esc(row.depart)} · ${levelPill(row.level_code, "High", "sm")} <span class="mut tiny">${esc(t("min"))} +${Math.round(row.arrives_later_by)}</span>` : "";
+  if (!row) { out.innerHTML = ""; readout.textContent = ""; hour.hidden = true; return; }
+  readout.textContent = `+${offset} ${t("min")}, ${row.depart}`;
+  hour.hidden = false; hour.style.left = `calc(${pct}% )`; hour.textContent = `${row.depart.slice(0, 2)}:00 ${t("hourWord")}: ${t("L" + row.level_code)}`;
+  out.innerHTML = `${levelPill(row.level_code, "High", "sm")} <span class="mut tiny">${esc(t("min"))} +${Math.round(row.arrives_later_by)}</span>`;
 }
 async function submitPlan(ev) {
   ev?.preventDefault();
@@ -189,7 +198,7 @@ async function loadExamples() {
 }
 function renderExamples() {
   $("examples-wrap").hidden = !state.examples.length;
-  $("examples").innerHTML = state.examples.map((e, i) => `<button type="button" class="ex" data-i="${i}"><span style="flex:1;min-width:0"><span style="display:block;font-weight:500">${esc(e.from.name)} → ${esc(e.to.name)}</span><span class="mut small">${esc(t("weekday"))}, ${esc(e.time)}</span></span></button>`).join("");
+  $("examples").innerHTML = state.examples.map((e, i) => `<button type="button" class="ex" data-i="${i}"><span style="flex:1;min-width:0"><span style="display:block;font-weight:500">${esc(t("fromTo", { from: e.from.name, to: e.to.name }))}</span><span class="mut small">${esc(t("weekday"))}, <span class="mono">${esc(e.time)}</span></span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true" class="mut"><path d="M9 6l6 6-6 6"/></svg></button>`).join("");
 }
 $("examples").addEventListener("click", (ev) => {
   const b = ev.target.closest(".ex"); if (!b) return;
@@ -210,9 +219,9 @@ function recolourMap() {
   map.setPaintProperty("casing", "line-color", levelPaint("line"));
   map.setPaintProperty("fill", "line-color", levelPaint("fill"));
   map.setPaintProperty("none", "line-color", cssVar("--mut"));
-  const dark = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim().toLowerCase() === "#0a0f1f";
-  map.setPaintProperty("base", "raster-brightness-max", dark ? 0.45 : 1);
-  map.setPaintProperty("base", "raster-saturation", dark ? -0.6 : 0);
+  const dark = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim().toLowerCase() === "#0e0f11";
+  map.setPaintProperty("base", "raster-brightness-max", dark ? 0.4 : 1);     // street map in greys so only the levels carry colour
+  map.setPaintProperty("base", "raster-saturation", -1);
 }
 function initMap() {
   map = new maplibregl.Map({ container: "map", center: [77.2, 28.62], zoom: 10,
@@ -329,9 +338,9 @@ function renderOperatorLists() {
   const over = state.over, relief = state.relief;
   if (!over) return;
   $("overloaded").innerHTML = `<thead><tr><th>${esc(t("colRoute"))}</th><th>${esc(t("colStretch"))}</th><th>${esc(t("colHour"))}</th><th>${esc(t("colEvidence"))}</th><th style="text-align:right">${esc(t("colRiders"))}</th><th style="text-align:right">Π</th></tr></thead><tbody>` +
-    (over.map((r) => `<tr><td style="font-weight:500">${esc(r.route)}</td><td>${esc(r.label)}</td><td>${String(r.hour).padStart(2, "0")}:00</td><td><span class="badge">${esc(t("T_" + r.tier))}</span></td><td style="text-align:right">${Math.round(r.sampled)}</td><td style="text-align:right">${r.pi.toFixed(2)}</td></tr>`).join("") || `<tr><td colspan="6" class="mut">${esc(t("noRows"))}</td></tr>`) + "</tbody>";
+    (over.map((r) => `<tr><td class="mono">${esc(r.route)}</td><td>${esc(r.label)}</td><td class="mono">${String(r.hour).padStart(2, "0")}:00</td><td><span class="badge">${esc(t("T_" + r.tier))}</span></td><td style="text-align:right">${Math.round(r.sampled)}</td><td style="text-align:right">${r.pi.toFixed(2)}</td></tr>`).join("") || `<tr><td colspan="6" class="mut">${esc(t("noRows"))}</td></tr>`) + "</tbody>";
   const top = Math.max(1e-9, ...relief.map((r) => r.relief));
-  $("relief").innerHTML = relief.map((r) => `<div><div style="display:flex;justify-content:space-between;gap:8px;font-size:14px"><span><span style="font-weight:500">${esc(r.route)}</span> <span class="mut">${esc(r.label)}, N ${r.buses_per_hour.toFixed(0)}</span></span><span class="badge${r.robust_in_range ? "" : " ln"}">${esc(t(r.robust_in_range ? "firm" : "leans"))}</span></div><div class="bar" style="width:${Math.max(4, Math.round(100 * r.relief / top))}%"></div></div>`).join("");
+  $("relief").innerHTML = relief.map((r) => `<div><div style="display:flex;justify-content:space-between;gap:8px;font-size:14px"><span><span class="mono">${esc(r.route)}</span> <span class="mut">${esc(r.label)}, N ${r.buses_per_hour.toFixed(0)}</span></span><span class="badge${r.robust_in_range ? "" : " ln"}">${esc(t(r.robust_in_range ? "firm" : "leans"))}</span></div><div class="bar" style="width:${Math.max(4, Math.round(100 * r.relief / top))}%"></div></div>`).join("");
   $("op-foot").textContent = t("footOp", { period: state.plan?.period || "October 2026" });
 }
 
@@ -362,6 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("seg-opday").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { state.opDay = b.dataset.day; setSeg($("seg-opday"), "day", state.opDay); state.cell = null; loadOperator().catch(() => {}); } });
   $("op-hour").addEventListener("change", (e) => { state.opHour = Number(e.target.value); if (state.cell) selectCell(state.cell.route, state.opHour); });
   $("plan-form").addEventListener("submit", submitPlan);
+  $("swap").addEventListener("click", () => { const f = $("from").value; $("from").value = $("to").value; $("to").value = f; });
   $("open-info").addEventListener("click", () => $("info").showModal());
   $("close-info").addEventListener("click", () => $("info").close());
   wireSearch("from", "from-list"); wireSearch("to", "to-list");

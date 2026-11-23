@@ -22,16 +22,16 @@ export function OptionCard({ card, picked, onDetails }: Props) {
     </>
   );
   return (
-    <Card variant={picked ? "picked" : "plain"} style={{ gap: 10 }}>
+    <Card variant={picked ? "picked" : "plain"} style={{ gap: 10, padding: 18 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", flex: 1 }}>{card.legs.map((l, i) => <RouteChip key={i} route={l.route} />)}</View>
-        <Badge kind={picked ? "accent" : "plain"} label={t(picked ? "comfortable" : "fastest")} />
+        <Badge kind={picked ? "inv" : "plain"} label={t(picked ? "comfortable" : "fastest")} />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <LevelPill level={card.level.code} tier={lowestTier(card)} size="lg" />
-        <Text size={28} medium>{Math.round(card.minutes)} <Text tone="sec" size={15}>{t("min")}</Text></Text>
+        <Text size={40} display>{Math.round(card.minutes)} <Text tone="sec" size={15}>{t("min")}</Text></Text>
       </View>
-      <Text tone="sec" size={14}>{card.legs[0].from} → {last.to}, {cardVia(card, t)} {card.depart}–{card.arrive}</Text>
+      <Text tone="sec" size={14}>{t("fromTo", { from: card.legs[0].from, to: last.to })}, {cardVia(card, t)} <Text mono size={13} tone="sec">{card.depart}–{card.arrive}</Text></Text>
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>{marks}</View>
       {card.robustness ? (
         <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>

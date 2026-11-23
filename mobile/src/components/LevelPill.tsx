@@ -8,7 +8,8 @@ import { PersonGlyph } from "./PersonGlyph";
 import { Text } from "./Text";
 
 type Props = { level: Level["code"]; tier?: Tier; size?: "sm" | "md" | "lg" };
-const HEIGHT = { sm: 24, md: 32, lg: 40 } as const;
+const HEIGHT = { sm: 26, md: 32, lg: 40 } as const;
+const GLYPH = { sm: 1, md: 1, lg: 1.3 } as const;   // glyphs are scaled 1.3 on the big chip
 
 /** A crowding level: glyph count + word + fill, never colour alone.
  *  Tier: High is solid, Medium has a ring (2px gap + 1px ink), Low is hatched. Level 0 is a dashed outline. */
@@ -17,7 +18,7 @@ export function LevelPill({ level, tier = "High", size = "md" }: Props) {
   const { palette } = useTheme();
   const hatchId = `hatch${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const h = HEIGHT[size];
-  const textSize = size === "lg" ? 17 : size === "md" ? 14 : 12;
+  const textSize = size === "lg" ? 17 : size === "md" ? 15 : 13;
 
   if (level === 0) {
     return (
@@ -31,8 +32,8 @@ export function LevelPill({ level, tier = "High", size = "md" }: Props) {
   const word = t(`L${level}`);
   const pill = (
     <View style={[s.base, { height: h, backgroundColor: tok.fill, borderColor: tok.border, borderWidth: 1, overflow: "hidden" }]}>
-      {tier === "Low" ? <Hatch color={tok.ink} id={hatchId} /> : null}
-      <View style={s.glyphs}>{Array.from({ length: level }, (_, i) => <PersonGlyph key={i} color={tok.ink} size={size === "lg" ? 16 : 13} />)}</View>
+      {tier === "Low" ? <Hatch color={tok.hatch} id={hatchId} /> : null}
+      <View style={s.glyphs}>{Array.from({ length: level }, (_, i) => <PersonGlyph key={i} color={tok.ink} scale={GLYPH[size]} />)}</View>
       <Text size={textSize} medium style={{ color: tok.ink }}>{word}</Text>
     </View>
   );

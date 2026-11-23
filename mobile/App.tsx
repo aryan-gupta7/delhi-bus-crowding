@@ -1,11 +1,11 @@
-import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
-import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
+import { Geist_500Medium } from "@expo-google-fonts/geist/500Medium";
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import { BackHandler, View } from "react-native";
 import { Dock, type Tab } from "./src/components/Dock";
-import { Stripe } from "./src/components/Stripe";
 import { AboutScreen } from "./src/screens/AboutScreen";
 import { DetailScreen } from "./src/screens/DetailScreen";
 import { MapScreen } from "./src/screens/MapScreen";
@@ -40,7 +40,7 @@ function Shell() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <View style={{ paddingTop: 36, backgroundColor: palette.surf }}><Stripe /></View>
+      <View style={{ paddingTop: 28 }} />
       <View style={{ flex: 1 }}>
         {tab === "plan" && !results ? <PlanScreen onResults={setResults} /> : null}
         {tab === "plan" && results && !detail ? (
@@ -56,7 +56,7 @@ function Shell() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium });
+  const [fontsLoaded] = useFonts({ Geist_400Regular, Geist_500Medium, GeistMono_500Medium });
   return (
     <AppStateProvider>
       {(theme) => (

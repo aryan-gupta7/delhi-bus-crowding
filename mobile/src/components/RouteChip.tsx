@@ -6,7 +6,7 @@ export function RouteChip({ route, small = false }: { route: string; small?: boo
   const { palette } = useTheme();
   return (
     <View style={{ height: small ? 24 : 28, paddingHorizontal: 10, borderRadius: 8, backgroundColor: palette.ink, justifyContent: "center", alignSelf: "flex-start" }}>
-      <Text size={small ? 12 : 14} medium style={{ color: palette.bg }}>{route}</Text>
+      <Text size={small ? 12 : 13} mono style={{ color: palette.bg }}>{route}</Text>
     </View>
   );
 }

@@ -28,9 +28,9 @@ export function Strip({ leg, selected, onSelect }: Props) {
             style={{ flexGrow: 1, minWidth: TOUCH, height: 52, borderRadius: 10, overflow: "visible", alignItems: "center", justifyContent: "center",
               backgroundColor: tok ? tok.fill : "transparent",
               borderWidth: chosen ? 2 : 1, borderColor: chosen ? palette.ink : tok ? tok.border : palette.mut, borderStyle: tok ? "solid" : "dashed" }}>
-            {tok && s.tier === "Low" ? <Hatch color={tok.ink} id={`${base}h${i}`} /> : null}
+            {tok && s.tier === "Low" ? <Hatch color={tok.hatch} id={`${base}h${i}`} /> : null}
             {tok ? (
-              <View style={{ flexDirection: "row", gap: 1 }}>{Array.from({ length: code }, (_, k) => <PersonGlyph key={k} color={tok.ink} size={12} />)}</View>
+              <View style={{ flexDirection: "row", gap: 1 }}>{Array.from({ length: code }, (_, k) => <PersonGlyph key={k} color={tok.ink} />)}</View>
             ) : <Text size={14} medium tone="sec">?</Text>}
             {tok && !s.robust_in_range ? (
               <View pointerEvents="none" style={{ position: "absolute", left: -5, right: -5, top: -5, bottom: -5, borderRadius: 14, borderWidth: 1.5, borderStyle: "dashed", borderColor: palette.ink }} />

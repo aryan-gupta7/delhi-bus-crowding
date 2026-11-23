@@ -1,11 +1,10 @@
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 
-/** One rider: a head and shoulders. A level shows 1, 2 or 3 of these next to its word. */
-export function PersonGlyph({ color, size = 14 }: { color: string; size?: number }) {
+/** One rider: head and shoulders, drawn in a 9x11 box like the design. `scale` 1 is 9x11 points. */
+export function PersonGlyph({ color, scale = 1 }: { color: string; scale?: number }) {
   return (
-    <Svg width={size * 0.8} height={size} viewBox="0 0 12 15" accessibilityElementsHidden importantForAccessibility="no">
-      <Circle cx={6} cy={3.5} r={3} fill={color} />
-      <Path d="M0.5 14.5 C0.5 9.5 3 8 6 8 C9 8 11.5 9.5 11.5 14.5 Z" fill={color} />
+    <Svg width={9 * scale} height={11 * scale} viewBox="0 0 9 11" accessibilityElementsHidden importantForAccessibility="no">
+      <Path d="M4.5 0a2.4 2.4 0 1 1 0 4.8A2.4 2.4 0 0 1 4.5 0zM0 11c0-3 1.9-4.6 4.5-4.6S9 8 9 11z" fill={color} />
     </Svg>
   );
 }

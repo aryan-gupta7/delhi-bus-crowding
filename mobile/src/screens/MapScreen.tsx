@@ -74,10 +74,10 @@ export function MapScreen({ view }: { view: ResultsView | null }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScreenHeader title={t("mapTitle")} subtitle={`${view.fromName} → ${view.toName}`} />
+      <ScreenHeader title={t("mapTitle")} subtitle={t("fromTo", { from: view.fromName, to: view.toName })} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}>
         <Segmented options={hours.map((h) => ({ key: String(h), label: `${String(h).padStart(2, "0")}:00` }))} value={String(hour)} onChange={(k) => setHour(Number(k))} />
-        <View style={{ borderRadius: 24, backgroundColor: palette.seg, overflow: "hidden", alignItems: "center" }}>
+        <View style={{ borderRadius: 24, backgroundColor: palette.map, overflow: "hidden", alignItems: "center" }}>
           <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} accessibilityLabel={t("mapTitle")}>
             {items.map((i) => {
               const w = 4 + 12 * Math.sqrt(i.flow / peak);

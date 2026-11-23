@@ -24,11 +24,11 @@ export function Dock({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }
       {(["plan", "map", "about"] as Tab[]).map((k) => {
         const on = k === tab;
         const label = t(k === "plan" ? "tabPlan" : k === "map" ? "tabMap" : "tabAbout");
-        const color = on ? palette.accInk : palette.mut;
+        const color = on ? palette.ink : palette.mut;
         return (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={label} onPress={() => onChange(k)}
-            style={{ flex: 1, minHeight: TOUCH + 8, borderRadius: radius.inner, alignItems: "center", justifyContent: "center", gap: 2,
-              backgroundColor: on ? palette.accSubtle : "transparent" }}>
+            style={{ flex: 1, minHeight: 52, borderRadius: 18, alignItems: "center", justifyContent: "center", gap: 2,
+              backgroundColor: on ? palette.surf2 : "transparent" }}>
             <Svg width={22} height={22} viewBox="0 0 24 24">{ICONS[k](color)}</Svg>
             <Text size={12} medium style={{ color }}>{label}</Text>
           </Pressable>

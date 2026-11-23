@@ -1,54 +1,83 @@
-"""The web UI (web/style.css) and the mobile app (mobile/src/theme/tokens.ts) must use the same design tokens,
-and the mobile app must not carry its own copy of the UI strings (they come from web/i18n.js)."""
+"""Web CSS, mobile tokens and the design Legend must carry the same tokens, and the mobile app must not carry its
+own copy of the UI strings (they come from web/i18n.js)."""
 import json
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CSS_TO_TS = {"bg": "bg", "surf": "surf", "bd": "border", "ink": "ink", "sec": "sec", "mut": "mut", "acc": "accent",
-             "acc-s": "accSubtle", "acc-i": "accInk", "acc-t": "onAccent", "seg": "seg"}
-LEVEL_PARTS = {"": "fill", "i": "ink", "b": "border"}
+
+# The Legend values of the revised design (paper and graphite neutrals, cobalt accent, three crowding colours).
+LEGEND_LIGHT = {
+    "bg": "#F6F6F7", "surf": "#FFFFFF", "surf2": "#EFEFF1", "border": "#E1E2E6", "track": "#D5D7DD",
+    "ink": "#121316", "sec": "#41444C", "mut": "#62656E", "accent": "#2F5FE8", "accInk": "#2549C7", "map": "#E9EAEE",
+    "l1": "#A7E8C5", "l1i": "#08321F", "l1b": "#2F9E6A", "l2": "#FFB547", "l2i": "#2E1A00", "l2b": "#C98410",
+    "l3": "#D1264B", "l3i": "#FFFFFF", "l3b": "#D1264B",
+    "l1h": "rgba(8,50,31,.22)", "l2h": "rgba(46,26,0,.22)", "l3h": "rgba(255,255,255,.28)",
+}
+LEGEND_DARK = {
+    **LEGEND_LIGHT,
+    "bg": "#0E0F11", "surf": "#16181B", "surf2": "#1D1F23", "border": "#2A2D33", "track": "#2F3238",
+    "ink": "#F1F1EF", "sec": "#C2C4CB", "mut": "#9A9DA6", "accent": "#86A6FF", "accInk": "#86A6FF", "map": "#131518",
+    "l1b": "#A7E8C5", "l2b": "#FFB547", "l3": "#FF5C85", "l3i": "#2B0011", "l3b": "#FF5C85", "l3h": "rgba(43,0,17,.25)",
+}
+# CSS variable -> token name (levels: --l1 fill, --l1i ink, --l1b border, --hl1 hatch)
+CSS_TO_TOKEN = {"bg": "bg", "surf": "surf", "surf2": "surf2", "bd": "border", "track": "track", "ink": "ink", "sec": "sec",
+                "mut": "mut", "acc": "accent", "acc-i": "accInk", "map": "map",
+                **{f"l{n}{k}": f"l{n}{k}" for n in (1, 2, 3) for k in ("", "i", "b")},
+                **{f"hl{n}": f"l{n}h" for n in (1, 2, 3)}}
+VALUE = r"(#[0-9A-Fa-f]{6}|rgba\([^)]*\))"
 
 
-def css_theme(css: str, selector: str) -> dict[str, str]:
-    """All `--name: #hex` declarations of the first rule whose selector contains `selector`."""
+def norm(v: str) -> str:
+    return re.sub(r"\s+", "", v).upper() if v.startswith("#") else re.sub(r"\s+", "", v).lower()
+
+
+def css_block(css: str, selector: str) -> dict[str, str]:
     block = re.search(re.escape(selector) + r"\s*\{(.*?)\}", css, re.S).group(1)
-    return {k: v.upper() for k, v in re.findall(r"--([\w-]+):\s*(#[0-9A-Fa-f]{6})", block)}
+    return {CSS_TO_TOKEN[k]: norm(v) for k, v in re.findall(r"--([\w-]+):\s*" + VALUE, block) if k in CSS_TO_TOKEN}
 
 
-def ts_theme(ts: str, name: str) -> dict[str, str]:
+def web_tokens() -> tuple[dict[str, str], dict[str, str]]:
+    css = (ROOT / "web/style.css").read_text()
+    light = css_block(css, ":root")
+    return light, {**light, **css_block(css, ':root[data-theme="dark"]')}
+
+
+def mobile_tokens(name: str) -> dict[str, str]:
+    ts = (ROOT / "mobile/src/theme/tokens.ts").read_text()
     body = re.search(r"export const " + name + r": Palette = \{(.*?)\n\};", ts, re.S).group(1)
-    out = {k: v.upper() for k, v in re.findall(r"\b(\w+): \"(#[0-9A-Fa-f]{6})\"", body.split("levels:")[0])}
-    for level, fill, ink, border in re.findall(r"(\d): \{ fill: \"(#\w+)\", ink: \"(#\w+)\", border: \"(#\w+)\" \}", body):
-        out.update({f"l{level}": fill.upper(), f"l{level}i": ink.upper(), f"l{level}b": border.upper()})
+    flat, levels = body.split("levels:")
+    out = {k: norm(v) for k, v in re.findall(r'\b(\w+): "(#[0-9A-Fa-f]{6})"', flat)}
+    for n, fields in re.findall(r"(\d): \{(.*?)\}", levels):
+        for key, suffix in (("fill", ""), ("ink", "i"), ("border", "b"), ("hatch", "h")):
+            out[f"l{n}{suffix}"] = norm(re.search(key + r': "([^"]+)"', fields).group(1))
     return out
 
 
-def expected(css_vars: dict[str, str]) -> dict[str, str]:
-    out = {CSS_TO_TS[k]: v for k, v in css_vars.items() if k in CSS_TO_TS}
-    for n in (1, 2, 3):
-        for suffix in LEVEL_PARTS:
-            out[f"l{n}{suffix}"] = css_vars[f"l{n}{suffix}"]
-    return out
+def test_web_css_matches_the_legend():
+    light, dark = web_tokens()
+    assert light == {k: norm(v) for k, v in LEGEND_LIGHT.items()}
+    assert dark == {k: norm(v) for k, v in LEGEND_DARK.items()}
 
 
-def test_light_tokens_match_web_css():
-    css = (ROOT / "web/style.css").read_text()
-    ts = (ROOT / "mobile/src/theme/tokens.ts").read_text()
-    web = css_theme(css, ":root")
-    mobile = ts_theme(ts, "light")
-    want = expected(web)
-    got = {CSS_TO_TS.get(k, k): v for k, v in mobile.items()}
-    assert {k: got[k] for k in want} == want
+def test_mobile_tokens_match_the_legend():
+    assert mobile_tokens("light") == {k: norm(v) for k, v in LEGEND_LIGHT.items()}
+    assert mobile_tokens("dark") == {k: norm(v) for k, v in LEGEND_DARK.items()}
 
 
-def test_dark_tokens_match_web_css():
-    css = (ROOT / "web/style.css").read_text()
-    ts = (ROOT / "mobile/src/theme/tokens.ts").read_text()
-    web = {**css_theme(css, ":root"), **css_theme(css, ':root[data-theme="dark"]')}
-    mobile = ts_theme(ts, "dark")
-    want = expected(web)
-    assert {k: mobile[k] for k in want} == want
+def test_web_and_mobile_tokens_agree():
+    light, dark = web_tokens()
+    assert mobile_tokens("light") == light
+    assert mobile_tokens("dark") == dark
+
+
+def test_the_old_look_is_gone():
+    """No livery stripe, no navy surfaces, no Inter/Geist pairing, no bus illustration, no blue hero."""
+    web = "".join((ROOT / "web" / f).read_text() for f in ("index.html", "style.css", "app.js"))
+    mobile = "".join(p.read_text() for p in (ROOT / "mobile").glob("**/*.ts*") if "node_modules" not in p.parts)
+    for needle in (r"livery", r"Inter", r"#0A0F1F", r"#131A31", r"#1F5FE0", r"\bhero\b"):
+        assert not re.search(needle, web, re.I if needle == "livery" else 0), needle
+        assert not re.search(needle, mobile, re.I if needle == "livery" else 0), needle
 
 
 def web_strings() -> dict[str, dict[str, str]]:
